@@ -1,11 +1,12 @@
 # Like Me Like Agent API — quick start
 
-PLAN §13.8 surface. Stable from `v1/`. All endpoints take an
-`X-LML-Agent-Id` header carrying a hashed third-party-supplied
+The agent surface is stable from the `v1/` prefix. All endpoints
+take an `X-LML-Agent-Id` header carrying a stable third-party-supplied
 end-user identifier (8-256 ASCII chars). First call from a new
 identifier auto-creates a shadow profile and grants 10 free calls.
-x402 payment middleware (Stripe Machine Payments) lands in stap 5;
-until then all calls are served regardless of free-tier exhaustion.
+After that, an x402 USDC top-up gates further calls (see Payments
+below). Enforcement is gated by `LML_X402_ENFORCE`; while it's off,
+calls past the free tier are still served.
 
 The `BASE` URL below is the dev preview — replace with
 `https://likemelike.com` for production.
@@ -78,7 +79,7 @@ wait
 ```
 
 Each call counts as one against the free-tier counter (and
-against the credit balance once §13.9 ships).
+against the credit balance once x402 enforcement is on).
 
 Basic single-call example:
 
@@ -266,8 +267,8 @@ surfaces — pass any subset:
   - `prefers_dark` — boolean, light/dark UI preference.
 - `user_demographics` — `{ age_group?, gender?, birth_year? }`.
   Self-declared, persisted with `demographics_source='self'`.
-  Soft signal for the §6.18 retrieval filter (when wired) to
-  match against item-level age/gender targeting.
+  Soft signal used (when wired) to match against item-level
+  age/gender targeting.
 - `gift_mode: boolean` — true when the recommendation is FOR
   SOMEONE ELSE (a birthday gift, a friend, a child). Lands in
   `gift_sessions` instead of touching the agent's own taste graph
@@ -288,10 +289,10 @@ runs the **full cohort-match pipeline before** the chat brain
 sees the message:
 
 1. Persists the items to the user's shadow taste profile.
-2. Calls the LLM-summary deriver (PLAN §4.4) — same path the
-   website uses on `/api/init`'s after-hook.
-3. Embeds the summary (Gemini embedding).
-4. Assigns the user to the nearest cohort centroid (§6.15).
+2. Calls the LLM-summary deriver — same path the website uses on
+   first-visit init.
+3. Embeds the summary.
+4. Assigns the user to the nearest cohort centroid.
 5. Refreshes the cohort cache so subsequent recommend calls
    surface "users like you also like…" hits.
 
@@ -564,10 +565,10 @@ LML_X402_TOPUP_AMOUNTS=1000000,5000000,25000000  # $1, $5, $25 presets in USD mi
 ### Per-call cost model
 
 Each paid-tier call deducts a **flat $0.05 estimate** from balance
-in this version. Actual cost is logged in `llm_calls.context_json`
-for future reconciliation against OpenRouter's `total_cost_usd` —
-see PLAN §13.9.3. Refunds for over-charges live in the ledger as
-manual adjustments by the operator.
+in this version. Actual cost is logged for future reconciliation
+against the upstream LLM provider's reported cost. Refunds for
+over-charges live in the ledger as manual adjustments by the
+operator.
 
 ## Browser console testing
 

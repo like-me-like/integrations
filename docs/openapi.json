@@ -3,7 +3,7 @@
   "info": {
     "title": "Like Me Like Agent API",
     "version": "1.0.0",
-    "description": "Cross-domain taste recommendations for autonomous agents. PLAN §13.8.\n\nAuth via X-LML-Agent-Id header. First call from a new agent_user_id\nauto-creates a shadow profile and grants 10 free calls; x402\nStripe Machine Payments arrives in stap 5.",
+    "description": "Cross-domain taste recommendations for autonomous agents.\n\nAuth via X-LML-Agent-Id header. First call from a new agent_user_id\nauto-creates a shadow profile and grants 10 free calls; after that\nan x402 USDC top-up gates further calls (see /api/v1/billing/topup).",
     "contact": {
       "name": "Like Me Like",
       "url": "https://likemelike.com"
@@ -385,7 +385,7 @@
     "/api/v1/recommend/scoped": {
       "post": {
         "summary": "Single-category focused recommendation",
-        "description": "JSON response with up to num_picks recs in the named category. Powers the 'Interstellar → 1 book' shape. num_picks=1 only in stap 2 (3-pick scoped lands later).",
+        "description": "JSON response with up to num_picks recs in the named category. Powers the 'Interstellar → 1 book' shape. num_picks=1 only in this version (3-pick scoped lands later).",
         "requestBody": {
           "required": true,
           "content": {
@@ -772,7 +772,7 @@
                   },
                   "first_touch": {
                     "type": "object",
-                    "description": "Optional cold-start signals (PLAN §6.17) for cohort matching when liked_items is empty. Mirrors the website's device_profile + first_visit_context shape; pass any subset the channel can derive.",
+                    "description": "Optional cold-start signals for cohort matching when liked_items is empty. Mirrors the website's device_profile + first_visit_context shape; pass any subset the channel can derive.",
                     "properties": {
                       "timezone": {
                         "type": "string",
@@ -815,7 +815,7 @@
                   },
                   "user_demographics": {
                     "type": "object",
-                    "description": "Optional self-declared demographics (PLAN §6.10.7). Persisted on the shadow profile with demographics_source='self' for the §6.18 retrieval filter to match against item-level age/gender targeting.",
+                    "description": "Optional self-declared demographics. Persisted on the shadow profile with demographics_source='self' so the retrieval filter (when wired) can match against item-level age/gender targeting.",
                     "properties": {
                       "age_group": {
                         "type": "string",
