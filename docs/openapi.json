@@ -258,7 +258,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "Cell budget: categories.length × variants.length ≤ 5. Each cell yields ~2 picks, so this caps total results at ~10 — safely under Gemini Flash Lite's documented ~25% truncation rate at higher cell counts. Bigger asks → split into parallel calls and merge client-side. See docs/agents.md."
+                    "description": "Cell budget: categories.length × variants.length ≤ 5. Each cell yields ~2 picks, so this caps total results at ~10 — safely under the recommendation model's ~25% truncation rate observed above ~10-12 items in one streamed JSON response. Bigger asks → split into parallel calls and merge client-side. See docs/agents.md."
                   },
                   "cultureMode": {
                     "type": "string",

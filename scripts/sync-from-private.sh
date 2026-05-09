@@ -35,6 +35,26 @@ echo "Syncing from: $PRIVATE_REPO"
 echo "Into:         $HERE"
 echo
 
+# 0. Pre-sync leak check. The private repo ships its own
+#    check-public-leaks.sh (single source of truth for what
+#    counts as a leak). If that script exists and fails, refuse
+#    to sync — the operator must fix the source before mirroring.
+LEAK_CHECK="$PRIVATE_REPO/scripts/check-public-leaks.sh"
+if [[ -x "$LEAK_CHECK" ]]; then
+  echo "Running pre-sync leak check..."
+  if ! ( cd "$PRIVATE_REPO" && bash "$LEAK_CHECK" ); then
+    echo >&2
+    echo "Sync aborted: leak check failed in the private repo." >&2
+    echo "Fix the flagged content above, then re-run this script." >&2
+    exit 2
+  fi
+  echo
+else
+  echo "WARN: $LEAK_CHECK not found or not executable — skipping" >&2
+  echo "      pre-sync leak check. Add it for hard guardrails." >&2
+  echo
+fi
+
 # 1. agents.md — direct copy.
 SRC_AGENTS="$PRIVATE_REPO/docs/agents.md"
 DST_AGENTS="$HERE/docs/agents.md"
