@@ -1,26 +1,3 @@
-<!--
-PUBLIC FILE — this file is mirrored verbatim to
-https://github.com/like-me-like/integrations.
-
-Before editing, assume every word ships externally. Do NOT include:
-- Personal names or operator handles
-- Non-English test examples (default to English consistently)
-- Dev / preview / staging infrastructure URLs or hostnames
-- Operator-only env-var names, secrets, or wallet addresses
-- Per-call internal pricing, model names, or stack details
-- Internal spec / planning section references
-
-Mirrored OpenAPI description fields, MCP tool descriptions, and
-chat-tool descriptions follow the same rules — they leak via
-/api/v1/openapi and tools/list responses to every connected
-client.
-
-When in doubt: write it for an external integrator who has never
-met the team. The pre-sync leak check in
-`scripts/check-public-leaks.sh` (private repo) hard-fails on the
-patterns above; keep that as the safety net, not the policy.
--->
-
 # Like Me Like Agent API — quick start
 
 The agent surface is stable from the `v1/` prefix. All endpoints
