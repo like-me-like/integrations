@@ -39,3 +39,16 @@ path.
 
 - `XAI_API_KEY` — your xAI API key
 - `LML_AGENT_ID` — stable end-user identifier (8–256 ASCII chars)
+
+## Cost & free tier
+
+Like Me Like is a paid API. Each `X-LML-Agent-Id` gets **10 free
+calls one-time**, then x402 USDC top-ups gate further calls.
+
+Because your code dispatches the HTTP call (not Grok directly),
+**you control the agent ID per request** — derive it from the
+end-user's identifier (`sha256(user_id)`) so each user gets their
+own free tier and clean billing. That's the right shape for any
+multi-user app.
+
+See [Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).

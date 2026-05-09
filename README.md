@@ -16,10 +16,40 @@ This repo contains:
 - **Worked examples** under [`examples/`](examples/) — curl, Node, Python
 
 The base API is `https://likemelike.com/api/v1/`. All endpoints take an
-`X-LML-Agent-Id` header carrying a stable third-party-supplied end-user
-identifier (8–256 ASCII chars). First call from a new identifier gets
-10 free calls; after that an x402 top-up is required (see
-[`docs/agents.md`](docs/agents.md)).
+`X-LML-Agent-Id` header — see Pricing below for what that header means
+for cost.
+
+## Pricing — paid API with per-end-user free tier
+
+**Like Me Like is a paid API.** You pay per call once the free tier is
+exhausted; payments settle on-chain via the
+[x402 protocol](https://www.x402.org) (USDC on Base, no account
+required, no card on file).
+
+The free tier and the billing key are **per end-user**, not per
+integration:
+
+- The `X-LML-Agent-Id` header identifies the **end-user**, not the
+  integration. A WhatsApp bot serving 1 000 users sends 1 000
+  distinct agent IDs (typically derived as `sha256(phone_number)` or
+  similar stable hash). A single-user dev tool sends one.
+- **Each agent ID gets 10 free calls** (one-time, no monthly reset)
+  before x402 enforcement kicks in.
+- **After that, calls deduct from the agent's balance** — top up with
+  any amount of USDC via `POST /api/v1/billing/topup` and the x402
+  challenge / response flow.
+
+That economic shape is important for how you wire up the integration:
+
+| You're building | Agent ID strategy | Cost note |
+| --- | --- | --- |
+| A multi-tenant bot (WhatsApp, Discord, Slack) | One agent ID per end-user — `sha256(user_id)` | Each user gets their own free tier; you decide whether to top them up or pass the cost through |
+| A personal tool / single-user assistant | One stable agent ID, reused | 10 free calls then top up your own balance |
+| A demo / quick test | A random agent ID per session | Each session burns one of the 10-call budget; reuse the same id while testing |
+
+See [`docs/agents.md` § Payments](docs/agents.md#payments-x402-via-coinbase-cdp)
+for the full top-up flow, and the per-platform README for the
+header-config snippet.
 
 ## For developers
 
@@ -68,6 +98,14 @@ The single highest-leverage signal you can pass on any surface is
 triggers cohort matching against similar users and produces
 materially better recommendations. See
 [`docs/agents.md`](docs/agents.md) §Personalisation.
+
+**On cost:** every call you make decrements either the end-user's
+10-call free tier or the agent's USDC balance. If your host has a
+stable per-end-user identifier (phone number, OAuth user id,
+session id), hash it and use it as `X-LML-Agent-Id` so each user
+gets their own free tier and a clean billing identity. If you're a
+single-user assistant, one stable id reused across calls is fine.
+See "Pricing" above.
 
 ## Open source — contributions welcome
 

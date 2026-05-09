@@ -32,8 +32,7 @@ mcp_servers:
 
 The 120 s timeout is generous — the first call with `liked_items`
 triggers cohort matching that can take ~10–30 s, and a chained
-`recommend_*` call adds another 10–20 s on Sonnet (less on Haiku
-once we swap the chat brain over).
+`recommend_*` call adds another 10–20 s of LLM work on top.
 
 ## Tools exposed
 
@@ -61,3 +60,13 @@ mcp_servers:
 
 For agents that want fine control, expose all tools and let the
 host LLM choose.
+
+## Cost & free tier
+
+Like Me Like is a paid API. Each `X-LML-Agent-Id` gets **10 free
+calls one-time**, then `POST /api/v1/billing/topup` gates further
+calls via x402 USDC on Base. For a personal Hermes setup with one
+end-user, reuse a single stable id across calls; for multi-tenant
+deployments derive the id from the end-user (`sha256(user_id)`)
+so each user gets their own free tier. See
+[Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).

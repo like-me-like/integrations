@@ -69,10 +69,20 @@ The brain orchestrates the atomic tools on your behalf. For
 fine-grained control you can address tools directly ("use
 `disambiguate` on Dune first").
 
+## Cost & free tier
+
+Like Me Like is a paid API. Each `X-LML-Agent-Id` (one per
+end-user) gets **10 free calls one-time**, then `POST /api/v1/billing/topup`
+gates further calls via x402 USDC on Base. For a personal Claude
+Desktop install where you're the only user, one stable id reused
+across sessions is the right shape — you'll get 10 free calls on
+that id, then top up. See
+[Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).
+
 ## Verification
 
 If Claude can't see the tools, run `tools/list` from the inspector
 or check the Claude Desktop logs (`~/Library/Logs/Claude/` on macOS).
 A 401 response means the `X-LML-Agent-Id` header is missing or
 malformed; a 402 means you've exhausted the 10-call free tier and
-need to top up (see [Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp)).
+need to top up.

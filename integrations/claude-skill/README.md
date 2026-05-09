@@ -38,3 +38,11 @@ When activated, the skill:
   invoke
 
 The shipped `SKILL.md` honours all three.
+
+## Cost & free tier
+
+The skill calls Like Me Like over the underlying MCP server, so
+the same per-end-user 10-call free tier and x402 top-up flow
+applies — see
+[`integrations/claude-desktop/`](../claude-desktop/) for the
+connection setup that gates the cost.

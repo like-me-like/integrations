@@ -99,6 +99,31 @@ end-user's phone number — `sha256(phone_number)` works well — so
 each end-user gets their own shadow profile that builds up across
 conversations.
 
+## Cost & free tier — important for multi-tenant bots
+
+Like Me Like is a paid API with a per-end-user free tier:
+
+- **Each unique `X-LML-Agent-Id` gets 10 free calls one-time** (no
+  monthly reset). After that, the agent must hold a positive USDC
+  balance topped up via the
+  [x402 protocol](https://www.x402.org).
+- Because the agent ID is per-end-user (you're hashing the phone
+  number, Discord user id, etc.), every user you onboard burns
+  their own free tier — at 1 000 active users you have 10 000 free
+  calls, not 10.
+- After exhaustion, **you choose**: top up each end-user's balance
+  on their behalf (you absorb the cost), pass the cost through
+  via your own pricing, or surface a "paid feature" prompt that
+  asks the user to top up themselves through your channel's
+  payment flow.
+
+The economic shape only matters once you exit free-tier traffic.
+For early validation, just point your bot at the API and the first
+10 calls per user are free.
+
+See [Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp)
+for the full top-up flow.
+
 ## Known issue
 
 OpenClaw issue #66940 reports that older Streamable-HTTP clients

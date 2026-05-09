@@ -52,3 +52,30 @@ plus an auth picker.
   toggle then suppresses subsequent prompts.
 - Rate limits apply per ChatGPT user, not per `X-LML-Agent-Id` —
   bear that in mind for free-tier accounting.
+
+## Cost & free tier — read this before publishing your GPT
+
+Like Me Like is a paid API. Each `X-LML-Agent-Id` gets **10 free
+calls one-time**, then x402 USDC top-ups gate further calls.
+
+For Custom GPTs the agent ID is set **once** in the Actions auth
+field and is shared by every user of your GPT. That has two
+implications:
+
+- **Single agent ID, single free tier.** All users of your GPT
+  share the same 10-call budget — so the free tier is exhausted
+  fast on a published GPT. Top up the agent's balance in advance,
+  or expect 402 responses to surface to your users.
+- **Cost flows to the GPT operator (you).** ChatGPT doesn't have a
+  way to forward an end-user identifier to an Action header per
+  request, so you can't put each user on their own free tier from
+  inside ChatGPT. You're effectively running a single account on
+  behalf of your users.
+
+If you need per-end-user accounting (each user their own free
+tier), build on a platform that supports per-user tool-call
+identity instead — e.g. an MCP server connected to Claude Desktop
+or OpenClaw, or a custom function-calling integration where your
+backend chooses the agent ID per request.
+
+See [Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).
