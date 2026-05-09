@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: Like Me Like
+  version: "1.0.0"
+  description: |
+    Cross-domain taste recommendations. Send a seed item the user
+    loves, get picks across other categories grounded in shared
+    cultural / aesthetic threads.
+servers:
+  - url: https://likemelike.com
+components:
+  securitySchemes:
+    LMLAgentId:
+      type: apiKey
+      in: header
+      name: X-LML-Agent-Id
+      description: |
+        Stable per-end-user identifier (8-256 ASCII chars). Reuse
+        the same value across calls so the shadow taste profile
+        builds up. First 10 calls per id are free; after that an
+        x402 top-up is required.
+  schemas:
+    Recommendation:
+      type: object
+      properties:
+        title: { type: string }
+        type: { type: string, description: "category id (book / movie / song / ...)" }
+        description: { type: string, nullable: true }
+        reason: { type: string, nullable: true }
+        imageUrl: { type: string, nullable: true }
+        variant: { type: string, enum: [best, recent, wild] }
+    LikedItem:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string }
+        category: { type: string, description: "optional category id" }
+security:
+  - LMLAgentId: []
+paths:
+  /api/v1/chat:
+    post:
+      operationId: chat
+      summary: Conversational entry — natural language in, recommendations out
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  maxLength: 4000
+                  description: User's natural-language question.
+                locale:
+                  type: string
+                  default: en
+                  description: BCP-47 reply locale.
+                liked_items:
+                  type: array
+                  description: 1-5 items the end-user has explicitly loved. Highest-impact signal.
+                  items: { $ref: "#/components/schemas/LikedItem" }
+                  maxItems: 20
+                disliked_items:
+                  type: array
+                  items: { $ref: "#/components/schemas/LikedItem" }
+                  maxItems: 20
+                display_name:
+                  type: string
+                  maxLength: 40
+                  description: End-user's first name or handle.
+                gift_mode:
+                  type: boolean
+                  default: false
+                  description: True when the recommendation is for someone else.
+      responses:
+        "200":
+          description: Chat reply with recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply: { type: string }
+                  recommendations:
+                    type: array
+                    items: { $ref: "#/components/schemas/Recommendation" }
+        "400": { description: Validation error }
+        "401": { description: Missing X-LML-Agent-Id }
+        "402": { description: Free tier exhausted; top-up required }
+
+  /api/v1/recommend/scoped:
+    post:
+      operationId: recommendScoped
+      summary: Single-category single-pick recommendation (JSON)
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item, target_category]
+              properties:
+                item:
+                  type: string
+                  description: Seed item (title or short description).
+                target_category:
+                  type: string
+                  description: Target category id (book / movie / song / ...).
+                num_picks:
+                  type: integer
+                  enum: [1]
+                  default: 1
+                locale: { type: string, default: en }
+                liked_items:
+                  type: array
+                  items: { $ref: "#/components/schemas/LikedItem" }
+                  maxItems: 20
+                display_name: { type: string, maxLength: 40 }
+                gift_mode: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Recommendation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: array
+                    items: { $ref: "#/components/schemas/Recommendation" }
+                  source:
+                    type: object
+                    properties:
+                      title: { type: string }
+                      category: { type: string, nullable: true }
+
+  /api/v1/disambiguate:
+    post:
+      operationId: disambiguate
+      summary: Resolve an ambiguous title to ranked candidates
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query: { type: string }
+                category_hint: { type: string }
+                limit: { type: integer, default: 10, maximum: 25 }
+      responses:
+        "200":
+          description: Ranked candidates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        title: { type: string }
+                        category: { type: string }
+                        confidence: { type: number }
+
+  /api/v1/profiles/{slug}:
+    get:
+      operationId: getProfile
+      summary: Public taste profile by slug
+      x-openai-isConsequential: false
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Profile
+        "404": { description: Not found or sharing disabled }
+
+  /api/v1/item/search:
+    get:
+      operationId: searchItems
+      summary: Search the items catalog by title prefix
+      x-openai-isConsequential: false
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+      responses:
+        "200":
+          description: Items list

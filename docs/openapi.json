@@ -1,0 +1,1030 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Like Me Like Agent API",
+    "version": "1.0.0",
+    "description": "Cross-domain taste recommendations for autonomous agents. PLAN §13.8.\n\nAuth via X-LML-Agent-Id header. First call from a new agent_user_id\nauto-creates a shadow profile and grants 10 free calls; x402\nStripe Machine Payments arrives in stap 5.",
+    "contact": {
+      "name": "Like Me Like",
+      "url": "https://likemelike.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://likemelike.com",
+      "description": "Production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "AgentId": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-LML-Agent-Id",
+        "description": "Hashed third-party-supplied end-user id (8-256 ASCII chars). Server derives a synthetic public_key_hash 'api:'+sha256(id) and tracks usage against agent_balances."
+      }
+    },
+    "schemas": {
+      "Recommendation": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "category id"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "wikipedia_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "variant": {
+            "type": "string",
+            "enum": [
+              "best",
+              "recent",
+              "wild"
+            ]
+          }
+        }
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "anchor_culture": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "external_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "affiliate_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "wikipedia_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "wikidata_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "release_date": {
+            "type": "string",
+            "nullable": true
+          },
+          "popularity_score": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "DisambiguateCandidate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "anchor_culture": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "popularity_score": {
+            "type": "number",
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number",
+            "description": "0-1 score"
+          }
+        }
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "screen_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "liked": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileItem"
+            }
+          },
+          "disliked": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileItem"
+            }
+          }
+        }
+      },
+      "ProfileItem": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "AgentId": []
+    }
+  ],
+  "paths": {
+    "/api/v1/recommend": {
+      "post": {
+        "summary": "Cross-domain taste recommendations",
+        "description": "Streaming response in the LMLM wire format (SOURCE: line + narration text + sentinel + JSON result tail). For a JSON-only response, use /api/v1/recommend/scoped.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "item"
+                ],
+                "properties": {
+                  "item": {
+                    "type": "string"
+                  },
+                  "source_url": {
+                    "type": "string",
+                    "description": "URL to fetch (HTML) and use as item title"
+                  },
+                  "image": {
+                    "type": "string",
+                    "description": "base64 data URL (max 3 MB decoded)"
+                  },
+                  "image_url": {
+                    "type": "string",
+                    "description": "URL to an image (max 3 MB, jpeg/png/webp/gif)"
+                  },
+                  "locale": {
+                    "type": "string",
+                    "default": "en"
+                  },
+                  "variants": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "best",
+                        "recent",
+                        "wild"
+                      ]
+                    },
+                    "description": "Default: ['best','recent']. 'wild' is an explicit opt-in for surprise picks. Total cells (categories.length × variants.length) is capped — see categories description."
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Cell budget: categories.length × variants.length ≤ 5. Each cell yields ~2 picks, so this caps total results at ~10 — safely under Gemini Flash Lite's documented ~25% truncation rate at higher cell counts. Bigger asks → split into parallel calls and merge client-side. See docs/agents.md."
+                  },
+                  "cultureMode": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "force"
+                    ]
+                  },
+                  "excludedTitles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "liked_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat — same shape, same effect (cohort match before recommend; ~10-30 s extra latency on first call).",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 20
+                  },
+                  "disliked_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat — same shape.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 20
+                  },
+                  "first_touch": {
+                    "type": "object",
+                    "description": "See /api/v1/chat — same shape.",
+                    "properties": {
+                      "timezone": {
+                        "type": "string"
+                      },
+                      "country": {
+                        "type": "string"
+                      },
+                      "device": {
+                        "type": "string"
+                      },
+                      "referrer": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "user_demographics": {
+                    "type": "object",
+                    "description": "See /api/v1/chat — same shape (age_group / gender / birth_year, written with demographics_source='self').",
+                    "properties": {
+                      "age_group": {
+                        "type": "string"
+                      },
+                      "gender": {
+                        "type": "string"
+                      },
+                      "birth_year": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "gift_mode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "See /api/v1/chat — true when the recommendation is for someone else; lands in gift_sessions."
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "description": "See /api/v1/chat — end-user's first name or handle, written to the shadow profile's screen_name."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Streaming recommendation",
+            "content": {
+              "text/plain": {}
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          }
+        }
+      }
+    },
+    "/api/v1/recommend/scoped": {
+      "post": {
+        "summary": "Single-category focused recommendation",
+        "description": "JSON response with up to num_picks recs in the named category. Powers the 'Interstellar → 1 book' shape. num_picks=1 only in stap 2 (3-pick scoped lands later).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "item",
+                  "target_category"
+                ],
+                "properties": {
+                  "item": {
+                    "type": "string"
+                  },
+                  "source_url": {
+                    "type": "string"
+                  },
+                  "image_url": {
+                    "type": "string"
+                  },
+                  "target_category": {
+                    "type": "string"
+                  },
+                  "num_picks": {
+                    "type": "integer",
+                    "enum": [
+                      1
+                    ],
+                    "default": 1
+                  },
+                  "locale": {
+                    "type": "string",
+                    "default": "en"
+                  },
+                  "liked_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat.",
+                    "items": {
+                      "type": "object"
+                    },
+                    "maxItems": 20
+                  },
+                  "disliked_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat.",
+                    "items": {
+                      "type": "object"
+                    },
+                    "maxItems": 20
+                  },
+                  "first_touch": {
+                    "type": "object",
+                    "description": "See /api/v1/chat."
+                  },
+                  "user_demographics": {
+                    "type": "object",
+                    "description": "See /api/v1/chat."
+                  },
+                  "gift_mode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "See /api/v1/chat."
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "description": "See /api/v1/chat."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recommendations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recommendations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Recommendation"
+                      }
+                    },
+                    "source": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          }
+        }
+      }
+    },
+    "/api/v1/disambiguate": {
+      "post": {
+        "summary": "Resolve an ambiguous title to ranked items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "category_hint": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 10,
+                    "maximum": 25
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ranked candidates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "candidates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DisambiguateCandidate"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/item/{id}": {
+      "get": {
+        "summary": "Item detail by id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "item": {
+                      "$ref": "#/components/schemas/Item"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/item/search": {
+      "get": {
+        "summary": "Search items catalog by title prefix",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Items list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Item"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profiles/{slug}": {
+      "get": {
+        "summary": "Public profile by slug",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "profile": {
+                      "$ref": "#/components/schemas/Profile"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or sharing disabled"
+          }
+        }
+      }
+    },
+    "/api/v1/chat": {
+      "post": {
+        "summary": "Conversational entry point with tool-calling",
+        "description": "Natural-language input. The chat brain (currently Claude Sonnet for testing; planned swap to Haiku 4.5) parses intent and calls the atomic /api/v1/* endpoints as tools. Modes: stateful (omit conversation_id on first turn → server returns one; pass it back to accumulate history) OR stateless (pass previous_messages explicitly). Cell-budget rule applies inside any recommend_* tool calls — if you ask for more than ~10 results, the brain narrows and explains.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 4000,
+                    "description": "User's natural-language turn."
+                  },
+                  "conversation_id": {
+                    "type": "string",
+                    "description": "Stateful mode. Omit on first turn; server creates one and returns the id."
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "web",
+                      "x",
+                      "api",
+                      "mcp"
+                    ],
+                    "default": "api",
+                    "description": "Drives the system-prompt persona — 'api' is the default for agent integrations."
+                  },
+                  "locale": {
+                    "type": "string",
+                    "default": "en"
+                  },
+                  "previous_messages": {
+                    "type": "array",
+                    "description": "Stateless mode — caller-managed history. Mutually exclusive with conversation_id.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "assistant",
+                            "tool",
+                            "system"
+                          ]
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "maxItems": 40
+                  },
+                  "liked_items": {
+                    "type": "array",
+                    "description": "Optional. 1-5 items the end-user has explicitly said they love (films, books, music, places, etc.). Triggers cohort matching against similar users on the FIRST turn it's passed (~10-30 s extra latency). Subsequent turns within the same conversation skip the prep.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string",
+                          "description": "Optional LMLM category id (e.g. 'book', 'movie'). Inferred when omitted."
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 20
+                  },
+                  "disliked_items": {
+                    "type": "array",
+                    "description": "Optional. Items the end-user has explicitly said they DISLIKE. Same shape as liked_items.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 20
+                  },
+                  "first_touch": {
+                    "type": "object",
+                    "description": "Optional cold-start signals (PLAN §6.17) for cohort matching when liked_items is empty. Mirrors the website's device_profile + first_visit_context shape; pass any subset the channel can derive.",
+                    "properties": {
+                      "timezone": {
+                        "type": "string",
+                        "description": "IANA TZ, e.g. 'Europe/Amsterdam'."
+                      },
+                      "country": {
+                        "type": "string",
+                        "description": "ISO 3166-1 alpha-2, e.g. 'NL'."
+                      },
+                      "device": {
+                        "type": "string",
+                        "description": "'mobile' | 'desktop' | 'tablet'."
+                      },
+                      "referrer": {
+                        "type": "string",
+                        "description": "e.g. 'whatsapp', 'discord', 'web'."
+                      },
+                      "languages": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "Ordered locale preferences, BCP-47. Primary first. Max 6 entries."
+                      },
+                      "entry_path": {
+                        "type": "string",
+                        "description": "Path inside the host app the user landed on."
+                      },
+                      "entry_params": {
+                        "type": "object",
+                        "description": "Whitelisted attribution params (utm_*, ref, source, via).",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "prefers_dark": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  "user_demographics": {
+                    "type": "object",
+                    "description": "Optional self-declared demographics (PLAN §6.10.7). Persisted on the shadow profile with demographics_source='self' for the §6.18 retrieval filter to match against item-level age/gender targeting.",
+                    "properties": {
+                      "age_group": {
+                        "type": "string",
+                        "enum": [
+                          "kid",
+                          "tween",
+                          "teen",
+                          "young_adult",
+                          "adult",
+                          "middle_age",
+                          "senior"
+                        ]
+                      },
+                      "gender": {
+                        "type": "string",
+                        "enum": [
+                          "male",
+                          "female",
+                          "non_binary"
+                        ]
+                      },
+                      "birth_year": {
+                        "type": "integer",
+                        "minimum": 1900
+                      }
+                    }
+                  },
+                  "gift_mode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Optional. true when the recommendation is for someone else (gift, friend, child). Lands in gift_sessions instead of the agent's own taste graph; the brain builds picks around the message-described recipient, not prior agent likes."
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "description": "Optional. The end-user's first name or handle (max 40 chars). Persisted on the shadow profile's screen_name; the brain will address the user by this name when natural. Pass on every call where it's known — late corrections overwrite cleanly. The same name surfaces on the user's public profile if they later claim/link this shadow account on the LML website."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat reply",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conversation_id": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Present in stateful mode."
+                    },
+                    "reply": {
+                      "type": "string",
+                      "description": "Assistant text reply."
+                    },
+                    "recommendations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Recommendation"
+                      },
+                      "description": "Flattened recs from any recommend_* tool calls in this turn."
+                    },
+                    "tool_calls": {
+                      "type": "array",
+                      "description": "Audit log of tool calls executed.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "args": {
+                            "type": "object"
+                          },
+                          "ok": {
+                            "type": "boolean"
+                          },
+                          "error": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "latency_ms": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          },
+          "403": {
+            "description": "Conversation belongs to another agent"
+          },
+          "404": {
+            "description": "Conversation not found or expired"
+          },
+          "502": {
+            "description": "Chat orchestrator failed"
+          }
+        }
+      }
+    },
+    "/api/v1/mcp": {
+      "post": {
+        "summary": "MCP (Model Context Protocol) Streamable-HTTP transport",
+        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile) plus a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "JSON-RPC 2.0 request — single message or array (batch).",
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "jsonrpc": {
+                        "type": "string",
+                        "enum": [
+                          "2.0"
+                        ]
+                      },
+                      "id": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "params": {
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "jsonrpc",
+                      "method"
+                    ]
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC 2.0 response (or array for batches).",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "204": {
+            "description": "Notification (no `id`) — no response body."
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          }
+        }
+      },
+      "get": {
+        "summary": "MCP server discovery (returns 405)",
+        "description": "Not a real GET endpoint — returns 405 Method Not Allowed with a hint to POST. Some clients probe GET first; this saves them an obscure error.",
+        "security": [],
+        "responses": {
+          "405": {
+            "description": "Method Not Allowed (POST only)."
+          }
+        }
+      }
+    },
+    "/api/v1/openapi": {
+      "get": {
+        "summary": "OpenAPI spec for this API surface",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.0 JSON",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}

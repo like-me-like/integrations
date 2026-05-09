@@ -1,0 +1,90 @@
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "lml_chat",
+        "description": "Get cross-domain taste recommendations from Like Me Like via natural language. Returns a text reply plus a structured recommendations array. Use this for any 'recommend me X based on Y' question across films, books, music, food, places, etc.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "User's natural-language question (max 4000 chars)."
+            },
+            "locale": {
+              "type": "string",
+              "description": "BCP-47 locale, e.g. 'en' or 'nl'. Drives reply language."
+            },
+            "liked_items": {
+              "type": "array",
+              "description": "1-5 items the end-user has explicitly loved. Highest-impact signal.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "category": { "type": "string" }
+                },
+                "required": ["title"]
+              }
+            },
+            "display_name": {
+              "type": "string",
+              "description": "End-user's first name or handle (max 40 chars)."
+            },
+            "gift_mode": {
+              "type": "boolean",
+              "description": "True when the recommendation is for someone else."
+            }
+          },
+          "required": ["message"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lml_recommend_scoped",
+        "description": "Get a single recommendation in a specific category, given a seed item the user loves. Use when the user explicitly asks for one pick in one category.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "item": { "type": "string" },
+            "target_category": { "type": "string" },
+            "locale": { "type": "string" },
+            "liked_items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "category": { "type": "string" }
+                },
+                "required": ["title"]
+              }
+            },
+            "display_name": { "type": "string" },
+            "gift_mode": { "type": "boolean" }
+          },
+          "required": ["item", "target_category"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lml_disambiguate",
+        "description": "Resolve an ambiguous title to ranked candidates from the items catalog. Use BEFORE recommend_* when the seed could match multiple things.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "category_hint": { "type": "string" },
+            "limit": { "type": "integer" }
+          },
+          "required": ["query"]
+        }
+      }
+    }
+  ]
+}

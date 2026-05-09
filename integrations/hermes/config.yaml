@@ -1,0 +1,12 @@
+# Merge this block into ~/.hermes/config.yaml under `mcp_servers:`.
+# Replace the X-LML-Agent-Id value with a stable per-end-user id
+# (8-256 ASCII chars). Reuse the same id across calls so the shadow
+# profile builds up.
+
+mcp_servers:
+  like-me-like:
+    url: "https://likemelike.com/api/v1/mcp"
+    headers:
+      X-LML-Agent-Id: "replace-with-your-stable-id"
+    timeout: 120
+    connect_timeout: 60

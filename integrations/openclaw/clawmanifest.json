@@ -1,0 +1,24 @@
+{
+  "name": "like-me-like",
+  "version": "1.0.0",
+  "description": "Cross-domain taste recommendations via Like Me Like MCP server.",
+  "author": "Like Me Like",
+  "homepage": "https://likemelike.com",
+  "repository": "https://github.com/like-me-like/integrations",
+  "license": "MIT",
+  "capabilities": {
+    "mcp_servers": [
+      "like-me-like"
+    ],
+    "network": {
+      "outbound": [
+        "https://likemelike.com"
+      ]
+    }
+  },
+  "permissions": {
+    "filesystem": "none",
+    "shell": "none",
+    "network": "outbound-allowlist"
+  }
+}

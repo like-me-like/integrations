@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "like-me-like": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://likemelike.com/api/v1/mcp",
+        "--header",
+        "X-LML-Agent-Id:${LML_AGENT_ID}"
+      ],
+      "env": {
+        "LML_AGENT_ID": "replace-with-your-stable-id"
+      }
+    }
+  }
+}

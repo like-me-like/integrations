@@ -1,0 +1,88 @@
+{
+  "tools": [
+    {
+      "functionDeclarations": [
+        {
+          "name": "lml_chat",
+          "description": "Get cross-domain taste recommendations from Like Me Like via natural language. Returns a text reply plus a structured recommendations array. Use this for any question of the form 'recommend me X based on Y' across films, books, music, food, places, etc.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "description": "User's natural-language question (max 4000 chars)."
+              },
+              "locale": {
+                "type": "string",
+                "description": "BCP-47 locale, e.g. 'en' or 'nl'. Drives reply language."
+              },
+              "liked_items": {
+                "type": "array",
+                "description": "1-5 items the end-user has explicitly loved. Highest-impact signal. Each entry: {title, category?}.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string" },
+                    "category": { "type": "string" }
+                  },
+                  "required": ["title"]
+                }
+              },
+              "display_name": {
+                "type": "string",
+                "description": "End-user's first name or handle (max 40 chars). The brain will address them by this name."
+              },
+              "gift_mode": {
+                "type": "boolean",
+                "description": "True when the recommendation is for someone else (gift, friend, child)."
+              }
+            },
+            "required": ["message"]
+          }
+        },
+        {
+          "name": "lml_recommend_scoped",
+          "description": "Get a single recommendation in a specific category, given a seed item the user loves. Use when the user explicitly asks for one pick in one category (e.g. 'one book based on Interstellar').",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "item": { "type": "string", "description": "Seed item title or short description." },
+              "target_category": {
+                "type": "string",
+                "description": "Target category id (book / movie / song / food / place / ...)."
+              },
+              "locale": { "type": "string" },
+              "liked_items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string" },
+                    "category": { "type": "string" }
+                  },
+                  "required": ["title"]
+                }
+              },
+              "display_name": { "type": "string" },
+              "gift_mode": { "type": "boolean" }
+            },
+            "required": ["item", "target_category"]
+          }
+        },
+        {
+          "name": "lml_disambiguate",
+          "description": "Resolve an ambiguous title (e.g. 'Dune' could mean the 1965 novel, the 2021 film, or the video game) to ranked candidates from the items catalog. Use BEFORE recommend_* when the seed could match multiple things.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": { "type": "string" },
+              "category_hint": { "type": "string", "description": "Optional category id to bias confidence." },
+              "limit": { "type": "integer" }
+            },
+            "required": ["query"]
+          }
+        }
+      ]
+    }
+  ]
+}

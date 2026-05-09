@@ -1,0 +1,605 @@
+# Like Me Like Agent API — quick start
+
+PLAN §13.8 surface. Stable from `v1/`. All endpoints take an
+`X-LML-Agent-Id` header carrying a hashed third-party-supplied
+end-user identifier (8-256 ASCII chars). First call from a new
+identifier auto-creates a shadow profile and grants 10 free calls.
+x402 payment middleware (Stripe Machine Payments) lands in stap 5;
+until then all calls are served regardless of free-tier exhaustion.
+
+The `BASE` URL below is the dev preview — replace with
+`https://likemelike.com` for production.
+
+```sh
+BASE="https://likemelike-git-dev-likemelike.vercel.app"
+AGENT="agent-test-$(openssl rand -hex 4)"   # any 8-256 ASCII chars
+```
+
+## Spec discovery
+
+```sh
+curl -s "$BASE/api/v1/openapi" | jq .
+```
+
+## Recommend (cross-domain, streaming)
+
+The streaming response uses the LMLM wire format:
+`SOURCE: <category> | <enriched item> | <orig lang> | <anchor lang>\n`
+followed by narration text, then a sentinel + JSON tail.
+
+**Per-call cell budget.** Configure categories and variants freely
+as long as their **product** stays within budget:
+
+```
+categories.length × variants.length ≤ 5
+```
+
+Each cell yields ~2 picks from the LLM, so this caps each call at
+~10 results — safely under Gemini Flash Lite's truncation
+threshold (the default model documents ~25% parse-error rate above
+~10–12 items in one streamed JSON response).
+
+Examples:
+
+| categories | variants | cells | items | OK? |
+| --- | --- | --- | --- | --- |
+| 5 | best | 5 | ~10 | ✓ |
+| 4 | best | 4 | ~8 | ✓ |
+| 2 | best, recent | 4 | ~8 | ✓ |
+| 1 | best, recent, wild | 3 | ~6 | ✓ |
+| 3 | best, recent | 6 | ~12 | ✗ — too many cells |
+| 5 | best, recent | 10 | ~20 | ✗ — Yme's original failing case |
+
+The website avoids this constraint via client-side variant
+splitting + parse-side salvage + per-cell top-ups via
+`/api/recommend/more`. Agents have no UI to drive that, so the
+cap is enforced server-side on input — explicit failure with a
+hint beats silent truncation.
+
+**Default values** (when fields omitted): `categories` = first 2
+free-tier categories (book + movie typically), `variants` =
+`["best","recent"]`. That's 4 cells / ~8 items — a safe default.
+
+**For larger asks**, fire multiple parallel calls and merge
+client-side:
+
+```sh
+# Call A: 5 cats × 1 var (best)
+curl -s -N "$BASE/api/v1/recommend" \
+  -H "X-LML-Agent-Id: $AGENT" -H "Content-Type: application/json" \
+  -d '{"item":"Interstellar","categories":["book","movie","song","eten","plaats"],"variants":["best"]}' &
+
+# Call B: same 5 cats × 1 var (recent)
+curl -s -N "$BASE/api/v1/recommend" \
+  -H "X-LML-Agent-Id: $AGENT" -H "Content-Type: application/json" \
+  -d '{"item":"Interstellar","categories":["book","movie","song","eten","plaats"],"variants":["recent"]}' &
+
+wait
+```
+
+Each call counts as one against the free-tier counter (and
+against the credit balance once §13.9 ships).
+
+Basic single-call example:
+
+```sh
+curl -s -N "$BASE/api/v1/recommend" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"item": "Interstellar", "locale": "en"}'
+```
+
+URL-as-item works too — server resolves to the page title:
+
+```sh
+curl -s -N "$BASE/api/v1/recommend" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"item": "https://en.wikipedia.org/wiki/Interstellar_(film)"}'
+```
+
+Or pass the URL explicitly via `source_url`:
+
+```sh
+curl -s -N "$BASE/api/v1/recommend" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"source_url": "https://en.wikipedia.org/wiki/Interstellar_(film)"}'
+```
+
+Image input via URL (server fetches, base64s internally):
+
+```sh
+curl -s -N "$BASE/api/v1/recommend" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"item": "this picture", "image_url": "https://upload.wikimedia.org/.../foo.jpg"}'
+```
+
+## Recommend scoped (single-category, JSON)
+
+`{"item": "Interstellar", "target_category": "book", "num_picks": 1}`
+→ 1 book recommendation, returned as JSON (not a stream).
+
+```sh
+curl -s "$BASE/api/v1/recommend/scoped" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "item": "Interstellar",
+    "target_category": "book",
+    "num_picks": 1,
+    "locale": "en"
+  }' | jq .
+```
+
+`num_picks` only accepts 1 in stap-2; 3-pick scoped lands in a
+follow-up commit. For more picks now, call repeatedly with the
+returned title appended to a client-side exclude list.
+
+## Disambiguate
+
+Resolve an ambiguous title to ranked candidates from the items
+catalog. Confidence 1.0 = exact title-key match in the category
+hint; 0.85 = exact match without category match; 0.4-0.6 = prefix
+match.
+
+```sh
+curl -s "$BASE/api/v1/disambiguate" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Dune", "category_hint": "film"}' | jq .
+```
+
+## Item lookup (GET)
+
+```sh
+# By id
+curl -s "$BASE/api/v1/item/abc123" -H "X-LML-Agent-Id: $AGENT" | jq .
+
+# Search
+curl -s "$BASE/api/v1/item/search?q=Interstellar&category=film&limit=5" \
+  -H "X-LML-Agent-Id: $AGENT" | jq .
+```
+
+## Profile lookup (GET)
+
+Returns the same data the website's `/profile/{slug}` page renders.
+404s for users with `profile_share_enabled=false`.
+
+```sh
+curl -s "$BASE/api/v1/profiles/abc123def4" \
+  -H "X-LML-Agent-Id: $AGENT" | jq .
+```
+
+## Chat (conversational entry point)
+
+`POST /api/v1/chat` is the natural-language doorway. The chat brain
+parses intent and calls the atomic tools above on your behalf, then
+returns a text reply plus the flat list of recommendations any tool
+calls produced.
+
+Cell-budget rule applies inside the brain too — if you ask for more
+than ~10 results, it narrows + explains rather than truncating.
+
+### Single-turn, stateless
+
+Easiest pattern. Don't track a conversation id; just send the user's
+message and (optionally) a `previous_messages[]` array for context.
+
+```sh
+curl -s "$BASE/api/v1/chat" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Interstellar is mijn lievelingsfilm, wat is het beste boek wat ik nu kan lezen, geef me 1 resultaat.",
+    "source": "api",
+    "locale": "nl"
+  }' | jq .
+```
+
+Response shape:
+
+```json
+{
+  "conversation_id": "uuid-or-null",
+  "reply": "Op basis van Interstellar is 'Contact' van Carl Sagan een sterke keuze...",
+  "recommendations": [ { "type": "book", "title": "Contact", ... } ],
+  "tool_calls": [ { "name": "recommend_scoped", "args": {...}, "ok": true } ],
+  "latency_ms": 12450
+}
+```
+
+### Multi-turn, stateful
+
+First turn: omit `conversation_id`. The response returns one in the
+`conversation_id` field. Pass it back on every subsequent turn.
+
+```sh
+# Turn 1
+RESP=$(curl -s "$BASE/api/v1/chat" \
+  -H "X-LML-Agent-Id: $AGENT" -H "Content-Type: application/json" \
+  -d '{"message":"Interstellar is mijn lievelingsfilm, wat is het beste boek?","source":"api","locale":"nl"}')
+CONV=$(echo "$RESP" | jq -r .conversation_id)
+echo "$RESP" | jq .reply
+
+# Turn 2 — refers to turn 1's pick implicitly
+curl -s "$BASE/api/v1/chat" \
+  -H "X-LML-Agent-Id: $AGENT" -H "Content-Type: application/json" \
+  -d "{\"message\":\"En een film in dezelfde sfeer?\",\"conversation_id\":\"$CONV\",\"locale\":\"nl\"}" | jq .reply
+```
+
+Conversations expire after 48 hours of inactivity.
+
+### Personalisation: liked_items, disliked_items, first_touch, user_demographics, gift_mode, display_name
+
+The same six optional fields are accepted on **all** these
+surfaces — pass any subset:
+
+| Surface | How |
+| --- | --- |
+| `POST /api/v1/chat` | Top-level body fields |
+| `POST /api/v1/recommend` (streaming) | Top-level body fields |
+| `POST /api/v1/recommend/scoped` (JSON) | Top-level body fields |
+| MCP `ask` tool | Tool-call arguments |
+| MCP `recommend_cross` / `recommend_scoped` tools | Tool-call arguments |
+
+- `liked_items[]` — items the end-user has explicitly loved.
+  Each entry: `{ title: string, category?: string }`. 1-5 is
+  plenty; max 20. **Highest-impact signal**.
+- `disliked_items[]` — same shape, for explicit negatives.
+- `first_touch` — cold-start cohort hint when no liked_items yet.
+  Mirrors what the website captures from `device_profile` +
+  `first_visit_context` so the same fields generalise across
+  every interface. Pass any subset the channel can derive:
+  - `timezone` — IANA, e.g. `'Europe/Amsterdam'`.
+  - `country` — ISO 3166-1 alpha-2, e.g. `'NL'`.
+  - `device` — `'mobile' | 'desktop' | 'tablet'`.
+  - `referrer` — `'whatsapp' | 'discord' | 'web' | …`.
+  - `languages` — ordered list of BCP-47 locales, primary first.
+    `['nl-NL','en-US']` = Dutch primary, comfortable with English.
+    Stronger signal than a single locale code (max 6).
+  - `entry_path` — host-app path the user landed on (e.g.
+    `'/profile/abc'` for deep-links).
+  - `entry_params` — `{utm_source?, utm_medium?, utm_campaign?, utm_content?, utm_term?, ref?, source?, via?}`.
+    Other keys are dropped server-side; values capped at 80 chars.
+  - `prefers_dark` — boolean, light/dark UI preference.
+- `user_demographics` — `{ age_group?, gender?, birth_year? }`.
+  Self-declared, persisted with `demographics_source='self'`.
+  Soft signal for the §6.18 retrieval filter (when wired) to
+  match against item-level age/gender targeting.
+- `gift_mode: boolean` — true when the recommendation is FOR
+  SOMEONE ELSE (a birthday gift, a friend, a child). Lands in
+  `gift_sessions` instead of touching the agent's own taste graph
+  → won't pollute future personal picks. The brain is told to
+  build picks around the message-described recipient, not the
+  agent's prior likes.
+- `display_name: string` — the end-user's first name or handle
+  (max 40 chars). Persisted on the shadow profile's `screen_name`;
+  the brain will address the user by this name when natural. Pass
+  on every call where it's known — late corrections (host LLM
+  hears "actually I'm Sam") overwrite cleanly. Same field the
+  website's profile-share dialog writes, so when a user later
+  claims their shadow profile on the LML website (Connect-Agent
+  flow, planned), the name carries over.
+
+When `liked_items` or `disliked_items` is non-empty, the server
+runs the **full cohort-match pipeline before** the chat brain
+sees the message:
+
+1. Persists the items to the user's shadow taste profile.
+2. Calls the LLM-summary deriver (PLAN §4.4) — same path the
+   website uses on `/api/init`'s after-hook.
+3. Embeds the summary (Gemini embedding).
+4. Assigns the user to the nearest cohort centroid (§6.15).
+5. Refreshes the cohort cache so subsequent recommend calls
+   surface "users like you also like…" hits.
+
+Total extra latency on the FIRST call: ~10-30 s (LLM summary is
+the slow part). Subsequent turns in the same conversation are
+free — the cohort signal is now persisted.
+
+The chat brain handles whatever signals it gets:
+
+- Anchors present → ground the reply in them; mention briefly that
+  the matching took a moment when cohort prep ran.
+- Anchors absent → give the best generic pick possible. The brain
+  doesn't proselytise about how more input would help; collecting
+  context is the host's job (your job, not ours), and the input
+  may be reaching us via an automated workflow with no human in
+  the loop.
+
+Scaling input from caller's side is what matters: every additional
+field above tightens the cohort match. The server makes the best of
+whatever you pass — no input is required beyond `message`. If you
+pass `liked_items` for the first time on a given agent_id, surface a
+warning to the end-user that the first reply takes longer (10-30 s
+on top of normal).
+
+**WhatsApp example** (via MCP `ask`):
+
+```sh
+curl -s "$BASE/api/v1/mcp" \
+  -H "X-LML-Agent-Id: $WHATSAPP_HASH" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"tools/call",
+    "params":{
+      "name":"ask",
+      "arguments":{
+        "message":"Wat moet ik nu lezen?",
+        "locale":"nl",
+        "display_name":"Sam",
+        "liked_items":[
+          {"title":"Interstellar","category":"movie"},
+          {"title":"Stoner","category":"book"},
+          {"title":"Past Lives","category":"movie"}
+        ],
+        "first_touch":{
+          "country":"NL",
+          "timezone":"Europe/Amsterdam",
+          "device":"mobile",
+          "referrer":"whatsapp"
+        }
+      }
+    }
+  }'
+```
+
+Stable `X-LML-Agent-Id` per WhatsApp end-user (`sha256(phone_number)`)
+keeps the shadow profile growing across conversations — cohort
+prep only runs the FIRST time taste anchors arrive; later calls
+just reuse the now-warm cohort signal.
+
+### Models + cost
+
+The chat brain currently runs on Claude Sonnet 4.6 for tool-calling
+reliability during the testing phase. Each chat turn includes one
+LLM call to the brain plus one LLM call per `recommend_*` tool the
+brain triggers — so a typical "give me 1 book based on X" turn costs
+~$0.13 (Sonnet) + ~$0.005 (Lite for the recommend pipeline). When
+the chat path stabilises this swaps to Haiku 4.5 (~24× cheaper);
+recommend_* stays on Lite.
+
+### Sources
+
+The `source` field shapes the brain's tone:
+
+- `api` (default) — concise JSON-flavoured replies, the agent
+  composes its own UI on top.
+- `web` — warmer prose, complements visual cards.
+- `x` — tweet-shaped, ≤280-char text framing image cards.
+- `mcp` — tight machine-readable replies for the MCP `ask` tool.
+
+## MCP (Model Context Protocol)
+
+`POST /api/v1/mcp` is a standards-compliant MCP server. Any MCP-aware
+client (Claude Desktop, custom MCP agents, the official MCP SDKs)
+can connect, list tools, and invoke them.
+
+The server exposes the same six atomic tools as the chat endpoint
+plus a high-level `ask` tool that wraps `/api/v1/chat`:
+
+| **Tool** | **Shape** | **Use when** |
+| --- | --- | --- |
+| `recommend_cross` | structured | you want fine-grained control over categories + variants |
+| `recommend_scoped` | structured | you want one focused pick in a single category |
+| `disambiguate` | structured | the seed is ambiguous (e.g. "Dune") |
+| `get_item` | structured | look up canonical item details by id |
+| `search_items` | structured | title-prefix browse the items catalog |
+| `get_profile` | structured | fetch a public profile by slug |
+| `ask` | natural-language | one-shot conversational entry — same brain as `/chat` |
+
+Atomic tools = the agent's host LLM orchestrates. `ask` = our brain
+orchestrates. Pricing is the same per call against the free-tier /
+balance counters.
+
+### JSON-RPC handshake
+
+MCP uses JSON-RPC 2.0 over HTTP POST. Each call is a single message
+(or batch). Auth via `X-LML-Agent-Id` header — same rules as the
+rest of /api/v1/*.
+
+```sh
+# Initialize the session
+curl -s "$BASE/api/v1/mcp" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": { "name": "curl", "version": "0.1" }
+    }
+  }' | jq .
+```
+
+```sh
+# List available tools
+curl -s "$BASE/api/v1/mcp" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | jq '.result.tools | map(.name)'
+```
+
+```sh
+# Call the high-level `ask` tool
+curl -s "$BASE/api/v1/mcp" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "ask",
+      "arguments": {
+        "message": "Interstellar is mijn lievelingsfilm, wat is het beste boek?",
+        "locale": "nl"
+      }
+    }
+  }' | jq '.result.structuredContent'
+```
+
+```sh
+# Call an atomic tool — search the catalog
+curl -s "$BASE/api/v1/mcp" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":4,
+    "method":"tools/call",
+    "params":{"name":"search_items","arguments":{"q":"Inter","limit":3}}
+  }' | jq '.result.structuredContent.items'
+```
+
+### Claude Desktop configuration
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`
+(macOS) or the equivalent path on Windows. The Streamable-HTTP
+transport reads the `url` + `headers` block:
+
+```json
+{
+  "mcpServers": {
+    "like-me-like": {
+      "url": "https://likemelike.com/api/v1/mcp",
+      "headers": {
+        "X-LML-Agent-Id": "your-stable-agent-id-here"
+      }
+    }
+  }
+}
+```
+
+Reuse the same agent id across sessions — the shadow profile builds
+up over calls, and free-tier credits are tracked against this id.
+
+### Notifications
+
+JSON-RPC requests without an `id` are notifications and produce no
+response body (HTTP 204). Used for client→server signals like
+`notifications/initialized` after the handshake.
+
+## Payments (x402 via Coinbase CDP)
+
+Agents start with **10 free calls** per X-LML-Agent-Id. After that,
+the agent must hold a positive USD-micro balance — topped up via the
+x402 protocol settling USDC on Base.
+
+The flow:
+
+1. Free tier (first 10 calls): no payment, just call.
+2. After free tier exhausted: every call is gated by balance.
+3. To top up: POST /api/v1/billing/topup. Without an X-Payment
+   header you get **HTTP 402 Payment Required** with the
+   PaymentRequirements payload (price, asset, network, payTo
+   address).
+4. Sign a USDC transfer per those requirements, base64-encode the
+   payload, retry with `X-Payment: <payload>`. Server verifies +
+   settles via the Coinbase CDP facilitator → balance credited.
+
+Enforcement is gated by `LML_X402_ENFORCE` env var. Default OFF
+during the testing phase — calls past the free tier are still
+served, but the ledger logs the would-be-charged amount. Flip to
+ON in production once the operator wallet is set up.
+
+### Top up — challenge / response
+
+Step 1 — request the challenge (no X-Payment yet):
+
+```sh
+curl -s -i "$BASE/api/v1/billing/topup" \
+  -X POST \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usd_micros": 5000000}'   # $5
+```
+
+Returns `HTTP/2 402` with body containing `accepts[].asset` (USDC
+contract), `accepts[].payTo` (operator wallet), `accepts[].network`
+(`eip155:8453` or `eip155:84532`), and `accepts[].maxAmountRequired`
+in USDC base units.
+
+Step 2 — construct + sign the USDC transfer payload (your agent's
+job; the x402 client SDKs handle this). Then retry:
+
+```sh
+curl -s "$BASE/api/v1/billing/topup" \
+  -X POST \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "X-Payment: <base64-encoded-signed-payload>" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usd_micros": 5000000}'
+```
+
+Successful settle returns `{ ok: true, credited_usd_micros, balance_usd_micros, on_chain_tx, network }`.
+
+### Operator setup (Vercel env vars)
+
+Set these on Vercel for the dev preview + production environments.
+**Never commit these values to the repo.**
+
+```
+CDP_API_KEY_ID=<from cdp.coinbase.com>
+CDP_API_KEY_SECRET=<from cdp.coinbase.com — keep secret>
+X402_PAY_TO_ADDRESS=0x…  # EVM wallet that receives USDC
+X402_NETWORK=eip155:84532  # Base Sepolia for testing; switch to eip155:8453 for mainnet
+LML_X402_ENFORCE=false  # flip to true once tested
+```
+
+Optional:
+
+```
+X402_FACILITATOR_URL=https://api.cdp.coinbase.com/platform/v2/x402  # default
+LML_X402_TOPUP_AMOUNTS=1000000,5000000,25000000  # $1, $5, $25 presets in USD micros
+```
+
+### Per-call cost model
+
+Each paid-tier call deducts a **flat $0.05 estimate** from balance
+in this version. Actual cost is logged in `llm_calls.context_json`
+for future reconciliation against OpenRouter's `total_cost_usd` —
+see PLAN §13.9.3. Refunds for over-charges live in the ledger as
+manual adjustments by the operator.
+
+## Browser console testing
+
+POST endpoints can be hit from the browser console too:
+
+```js
+const r = await fetch("/api/v1/recommend/scoped", {
+  method: "POST",
+  headers: {
+    "X-LML-Agent-Id": "agent-test-" + Math.random().toString(16).slice(2, 10),
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    item: "Interstellar",
+    target_category: "book",
+    num_picks: 1,
+  }),
+});
+console.log(await r.json());
+```
+
+## Errors
+
+All endpoints surface JSON `{ "error": "<code>", "detail": "..." }`
+on validation/auth failures. Streaming `/recommend` produces an
+in-stream error event after the sentinel when the provider fails;
+shape: `{"type": "error", "message", "errorClass", "userMessage"}`.
+
+Known error codes:
+
+- `missing_agent_id` (401) — header absent
+- `invalid_agent_id` (400) — header malformed (length / charset)
+- `400` — body validation failure with `detail`
+- `404` — item or profile not found
+- `502` — provider failure (recommend stream couldn't produce a result)

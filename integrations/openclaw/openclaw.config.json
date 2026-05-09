@@ -1,0 +1,13 @@
+{
+  "mcp": {
+    "servers": {
+      "like-me-like": {
+        "url": "https://likemelike.com/api/v1/mcp",
+        "transport": "streamable-http",
+        "headers": {
+          "X-LML-Agent-Id": "replace-with-your-stable-id"
+        }
+      }
+    }
+  }
+}
