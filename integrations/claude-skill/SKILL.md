@@ -54,6 +54,37 @@ Each cell yields ~2 picks, so a single call returns at most ~10
 results. If the user asks for more, split into parallel calls and
 merge the results.
 
+## Supported categories
+
+LMLM accepts these category ids (English aliases also resolve):
+`book`, `movie`, `song`, `tv_series`, `documentary`, `podcast`,
+`video`, `game`, `image`, `article`, `magazine`, `comic_or_manga`,
+`persoon`, `artiest`, `acteur`, `influencer`, `plaats`,
+`restaurant`, `event`, `experience`, `sportteam`, `sport`,
+`hobby`, `eten`, `drinken`, `merk`, `stijl`, `grap`, `dier`,
+`shop`, `overig`. Aliases like `food`, `place`, `animal`, `artist`
+resolve automatically.
+
+When you pass an unknown id, it's silently dropped and reported
+in the response's `unknown_category_ids` field. Acknowledge to the
+user instead of pretending it was returned.
+
+## First-call latency
+
+The first call with `liked_items` triggers cohort matching
+(~15–30 s extra). Configure your client / tool timeout to at
+least 60 s. Subsequent calls under the same agent id are fast.
+
+## Cost & free tier
+
+Like Me Like is a paid recommendation API. Each unique end-user
+gets 10 free calls one-time, then payment is required (USDC on
+Base via x402, or Lightning via L402). If a user asks about
+cost: answer accurately ("first 10 recommendations are free per
+user, paid after that — depending on how this channel has it
+configured"). Don't bring up cost proactively unless asked. Don't
+claim it's free if you don't know the channel's billing setup.
+
 ## Reply style
 
 Ground your reply in the items returned. Reference them by title,
