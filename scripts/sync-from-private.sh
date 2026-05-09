@@ -74,7 +74,24 @@ if [[ ! -f "$SRC_ROUTE" ]]; then
 fi
 node "$HERE/scripts/extract-openapi.mjs" "$SRC_ROUTE" "$DST_OPENAPI"
 
-# 3. Show what changed so the operator can decide whether to commit.
+# 3. Post-sync audit: scan the author-controlled side of THIS repo
+#    (integrations/, examples/, top README, .github/, scripts/) for
+#    internal-stack revelations. The synced files are already covered
+#    by the upstream pre-sync check; this catches leaks introduced
+#    by hand in the public-only files.
+POST_CHECK="$HERE/scripts/check-stack-leaks.sh"
+if [[ -x "$POST_CHECK" ]]; then
+  echo
+  echo "Running post-sync stack-leak audit on author-controlled files..."
+  if ! bash "$POST_CHECK"; then
+    echo >&2
+    echo "Post-sync audit failed: an author-written file in this repo" >&2
+    echo "reveals internal Like Me Like stack. Fix before committing." >&2
+    exit 3
+  fi
+fi
+
+# 4. Show what changed so the operator can decide whether to commit.
 echo
 echo "Diff after sync:"
 git -C "$HERE" --no-pager diff --stat docs/ || true

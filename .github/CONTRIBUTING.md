@@ -40,9 +40,19 @@ across AI agent platforms, chat apps, and developer toolchains.
 3. Test what you ship. If you're adding a curl example, run it.
    If you're adding a Node example, `node example.mjs` should
    exit 0 with a real reply.
-4. Open the PR with a clear "what" and "why". Screenshots help
+4. Run the leak audit before opening the PR:
+   ```bash
+   bash scripts/check-stack-leaks.sh
+   ```
+   The maintainers' Like Me Like stack (the chat brain, the
+   recommendation engine, infra vendors) stays out of this repo
+   by policy. The script flags accidental references. Platform-
+   eigen model names (e.g. `gemini-2.5-flash`,
+   `grok-2-latest`) are exempt inside their own
+   `integrations/<platform>/` folder where they belong.
+5. Open the PR with a clear "what" and "why". Screenshots help
    for UI-heavy platforms (Claude Desktop, ChatGPT GPT editor).
-5. We review and merge based on quality and fit. Not every PR
+6. We review and merge based on quality and fit. Not every PR
    will land — sometimes a recipe overlaps with an existing one,
    or a platform is too niche to maintain. We'll explain the
    reasoning either way.
