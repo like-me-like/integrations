@@ -18,7 +18,7 @@ const TOOLS_DOC = JSON.parse(readFileSync(join(HERE, "tools.json"), "utf8"));
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const LML_AGENT_ID = process.env.LML_AGENT_ID ?? "demo-agent-001";
-const LML_BASE = "https://likemelike.com";
+const LML_BASE = "https://www.likemelike.com";
 
 if (!XAI_API_KEY) {
   console.error("Set XAI_API_KEY in env.");

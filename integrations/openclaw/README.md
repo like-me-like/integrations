@@ -33,7 +33,7 @@ Like is a config-snippet, not a custom plugin.
   "mcp": {
     "servers": {
       "like-me-like": {
-        "url": "https://likemelike.com/api/v1/mcp",
+        "url": "https://www.likemelike.com/api/v1/mcp",
         "transport": "streamable-http",
         "headers": {
           "X-LML-Agent-Id": "replace-with-your-stable-id"

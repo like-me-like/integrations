@@ -10,7 +10,7 @@ Desktop's **Settings → Connectors → Add custom connector**. Paste
 the URL, choose header-based auth, and add the `X-LML-Agent-Id`
 header value when prompted.
 
-- **URL:** `https://likemelike.com/api/v1/mcp`
+- **URL:** `https://www.likemelike.com/api/v1/mcp`
 - **Transport:** Streamable HTTP (auto-detected)
 - **Header:** `X-LML-Agent-Id: <your-stable-id>`
 
@@ -33,7 +33,7 @@ with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
       "args": [
         "-y",
         "mcp-remote",
-        "https://likemelike.com/api/v1/mcp",
+        "https://www.likemelike.com/api/v1/mcp",
         "--header",
         "X-LML-Agent-Id:${LML_AGENT_ID}"
       ],

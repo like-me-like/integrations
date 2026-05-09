@@ -22,7 +22,7 @@ call.
 2. Gemini decides whether to call a function. If yes, it returns a
    `functionCall` part with `name` and `args`.
 3. Your code dispatches the corresponding HTTP request to
-   `https://likemelike.com/api/v1/...` with the `X-LML-Agent-Id`
+   `https://www.likemelike.com/api/v1/...` with the `X-LML-Agent-Id`
    header.
 4. Pass the response back to Gemini as a `functionResponse` part.
    Gemini then composes the final natural-language reply.

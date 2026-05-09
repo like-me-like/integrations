@@ -1,7 +1,7 @@
 # Contributing
 
 Thanks for considering a contribution. This repo collects
-integration recipes for [Like Me Like](https://likemelike.com)
+integration recipes for [Like Me Like](https://www.likemelike.com)
 across AI agent platforms, chat apps, and developer toolchains.
 
 ## What we accept

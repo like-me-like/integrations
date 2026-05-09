@@ -23,7 +23,7 @@ Like is a YAML snippet — no Python plugin required.
 ```yaml
 mcp_servers:
   like-me-like:
-    url: "https://likemelike.com/api/v1/mcp"
+    url: "https://www.likemelike.com/api/v1/mcp"
     headers:
       X-LML-Agent-Id: "replace-with-your-stable-id"
     timeout: 120
@@ -51,7 +51,7 @@ agents), restrict it:
 ```yaml
 mcp_servers:
   like-me-like:
-    url: "https://likemelike.com/api/v1/mcp"
+    url: "https://www.likemelike.com/api/v1/mcp"
     headers:
       X-LML-Agent-Id: "replace-with-your-stable-id"
     enabled_tools:

@@ -23,7 +23,7 @@ to Like Me Like when Grok emits a tool call.
 2. Grok decides whether to call a function. If yes, it returns a
    `tool_calls` array on the message.
 3. Your code dispatches the matching HTTP call to
-   `https://likemelike.com/api/v1/...` with the `X-LML-Agent-Id`
+   `https://www.likemelike.com/api/v1/...` with the `X-LML-Agent-Id`
    header.
 4. Append a tool-result message and call Grok again. Grok composes
    the final natural-language reply.

@@ -6,12 +6,12 @@
     "description": "Cross-domain taste recommendations for autonomous agents.\n\nAuth via X-LML-Agent-Id header. First call from a new agent_user_id\nauto-creates a shadow profile and grants 10 free calls; after that\nan x402 USDC top-up gates further calls (see /api/v1/billing/topup).",
     "contact": {
       "name": "Like Me Like",
-      "url": "https://likemelike.com"
+      "url": "https://www.likemelike.com"
     }
   },
   "servers": [
     {
-      "url": "https://likemelike.com",
+      "url": "https://www.likemelike.com",
       "description": "Production"
     }
   ],

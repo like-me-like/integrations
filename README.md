@@ -1,6 +1,6 @@
 # Like Me Like — integrations
 
-Open-source recipes for connecting [Like Me Like](https://likemelike.com)
+Open-source recipes for connecting [Like Me Like](https://www.likemelike.com)
 to AI agent platforms, chat apps, and developer toolchains.
 
 Like Me Like is a cross-domain taste recommendation API. You give it
@@ -15,7 +15,7 @@ This repo contains:
   source in the (private) main repository
 - **Worked examples** under [`examples/`](examples/) — curl, Node, Python
 
-The base API is `https://likemelike.com/api/v1/`. All endpoints take an
+The base API is `https://www.likemelike.com/api/v1/`. All endpoints take an
 `X-LML-Agent-Id` header — see Pricing below for what that header means
 for cost.
 
@@ -81,7 +81,7 @@ Pick the integration folder that matches the platform you're building on:
 | Direct REST | [`docs/agents.md`](docs/agents.md) | Curl/HTTP — language-agnostic |
 
 If your platform isn't listed and supports MCP (Model Context Protocol)
-over Streamable-HTTP, point it at `https://likemelike.com/api/v1/mcp`
+over Streamable-HTTP, point it at `https://www.likemelike.com/api/v1/mcp`
 with a header `X-LML-Agent-Id: <your-stable-id>` — that works
 out of the box.
 
@@ -151,4 +151,4 @@ status. If a folder you need is missing or stale, open an issue.
 
 ---
 
-Maintained by the [Like Me Like](https://likemelike.com) team.
+Maintained by the [Like Me Like](https://www.likemelike.com) team.

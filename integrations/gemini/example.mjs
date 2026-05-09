@@ -16,7 +16,7 @@ const TOOLS_DOC = JSON.parse(readFileSync(join(HERE, "tools.json"), "utf8"));
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const LML_AGENT_ID = process.env.LML_AGENT_ID ?? "demo-agent-001";
-const LML_BASE = "https://likemelike.com";
+const LML_BASE = "https://www.likemelike.com";
 
 if (!GEMINI_API_KEY) {
   console.error("Set GEMINI_API_KEY in env.");

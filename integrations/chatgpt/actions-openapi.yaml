@@ -7,7 +7,7 @@ info:
     loves, get picks across other categories grounded in shared
     cultural / aesthetic threads.
 servers:
-  - url: https://likemelike.com
+  - url: https://www.likemelike.com
 components:
   securitySchemes:
     LMLAgentId:

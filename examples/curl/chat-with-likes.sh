@@ -13,7 +13,7 @@ set -euo pipefail
 AGENT="${LML_AGENT_ID:-example-$(openssl rand -hex 4)}"
 echo "Using X-LML-Agent-Id: $AGENT"
 
-curl -s "https://likemelike.com/api/v1/chat" \
+curl -s "https://www.likemelike.com/api/v1/chat" \
   -H "X-LML-Agent-Id: $AGENT" \
   -H "Content-Type: application/json" \
   -d '{

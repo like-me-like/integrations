@@ -4,7 +4,7 @@
 //   LML_AGENT_ID=my-stable-id node chat.mjs
 
 const AGENT = process.env.LML_AGENT_ID ?? `example-${Math.random().toString(16).slice(2, 10)}`;
-const BASE = "https://likemelike.com";
+const BASE = "https://www.likemelike.com";
 
 const body = {
   message: "Recommend me a book based on Interstellar.",

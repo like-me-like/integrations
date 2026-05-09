@@ -13,7 +13,7 @@ import sys
 import requests
 
 AGENT = os.environ.get("LML_AGENT_ID", f"example-{secrets.token_hex(4)}")
-BASE = "https://likemelike.com"
+BASE = "https://www.likemelike.com"
 
 
 def main() -> int:

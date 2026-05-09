@@ -37,7 +37,7 @@ plus an auth picker.
 - `x-openai-isConsequential: false` is set on read-only operations
   so users get an "always allow" prompt instead of confirming each
   call.
-- The `servers` array is a single root URL (`https://likemelike.com`).
+- The `servers` array is a single root URL (`https://www.likemelike.com`).
   Path prefixes go in `paths`.
 - The auth field gets stripped if you switch auth type in the UI;
   set it last after pasting the schema.

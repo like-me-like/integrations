@@ -14,7 +14,7 @@ when to call Like Me Like.
 The skill assumes the Like Me Like MCP server is already available
 to Claude — see the [`claude-desktop/`](../claude-desktop/) folder
 for connection setup. If you're using Claude Code, run
-`claude mcp add like-me-like https://likemelike.com/api/v1/mcp --header "X-LML-Agent-Id: <your-id>"`
+`claude mcp add like-me-like https://www.likemelike.com/api/v1/mcp --header "X-LML-Agent-Id: <your-id>"`
 before activating the skill.
 
 ## What the skill does

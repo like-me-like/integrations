@@ -8,7 +8,7 @@ After that, an x402 USDC top-up gates further calls (see Payments
 below).
 
 ```sh
-BASE="https://likemelike.com"
+BASE="https://www.likemelike.com"
 AGENT="agent-test-$(openssl rand -hex 4)"   # any 8-256 ASCII chars
 ```
 
@@ -456,7 +456,7 @@ transport reads the `url` + `headers` block:
 {
   "mcpServers": {
     "like-me-like": {
-      "url": "https://likemelike.com/api/v1/mcp",
+      "url": "https://www.likemelike.com/api/v1/mcp",
       "headers": {
         "X-LML-Agent-Id": "your-stable-agent-id-here"
       }
@@ -631,7 +631,7 @@ Response:
 {
   "challenge_id": "abc123…",
   "method": "x402",
-  "link_url": "https://likemelike.com/pay/abc123…",
+  "link_url": "https://www.likemelike.com/pay/abc123…",
   "amount_usd_micros": "5000000",
   "pay_to_address": "0x…",
   "network": "eip155:8453",
@@ -659,7 +659,7 @@ Response:
 {
   "challenge_id": "abc123…",
   "method": "lightning",
-  "link_url": "https://likemelike.com/pay/abc123…",
+  "link_url": "https://www.likemelike.com/pay/abc123…",
   "amount_usd_micros": "5000000",
   "amount_sats": 7250,
   "btc_usd_rate": 68965.5,

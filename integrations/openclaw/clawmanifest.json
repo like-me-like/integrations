@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Cross-domain taste recommendations via Like Me Like MCP server.",
   "author": "Like Me Like",
-  "homepage": "https://likemelike.com",
+  "homepage": "https://www.likemelike.com",
   "repository": "https://github.com/like-me-like/integrations",
   "license": "MIT",
   "capabilities": {
@@ -12,7 +12,7 @@
     ],
     "network": {
       "outbound": [
-        "https://likemelike.com"
+        "https://www.likemelike.com"
       ]
     }
   },

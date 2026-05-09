@@ -20,7 +20,7 @@ from google.genai import types
 
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 LML_AGENT_ID = os.environ.get("LML_AGENT_ID", "demo-agent-001")
-LML_BASE = "https://likemelike.com"
+LML_BASE = "https://www.likemelike.com"
 
 # Load function declarations from the shipped manifest.
 with open(os.path.join(os.path.dirname(__file__), "tools.json")) as f:
