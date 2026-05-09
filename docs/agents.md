@@ -518,9 +518,15 @@ end-users who already hold a wallet, you can hand the payment off
 entirely. Two payment rails are supported, selectable per challenge
 via a `method` field:
 
-- `method: "x402"` (default) — EIP-3009 USDC transfer on Base. The
-  user signs typed-data in their EVM wallet (Coinbase Wallet,
-  Base Wallet, MetaMask Mobile, Rainbow). Stable USD pricing.
+- `method: "x402"` (default) — Permit2 signed authorisation on Base
+  USDC. The user signs typed-data in their EVM wallet. Stable USD
+  pricing. **Wallet-compatibility note:** the underlying CDP
+  facilitator's verify step currently does not perform on-chain
+  EIP-1271 / EIP-7702 signature checks. EOA wallets (plain private
+  key, e.g. MetaMask Mobile, viem `privateKeyToAccount`) work; some
+  Smart Wallets (Coinbase Smart Wallet / Base Wallet, which sign
+  via WebAuthn / passkey) are temporarily blocked at the verify
+  step. For consumer Smart Wallet flows use `lightning` for now.
 - `method: "lightning"` — Lightning Network (BOLT11 invoice via
   Alby Hub + NWC). The user scans a QR or taps a `lightning:` URI
   with their Lightning wallet (Phoenix, Wallet of Satoshi, Zeus,
