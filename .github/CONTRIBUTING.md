@@ -46,10 +46,11 @@ across AI agent platforms, chat apps, and developer toolchains.
    ```
    The maintainers' Like Me Like stack (the chat brain, the
    recommendation engine, infra vendors) stays out of this repo
-   by policy. The script flags accidental references. Platform-
-   eigen model names (e.g. `gemini-2.5-flash`,
-   `grok-2-latest`) are exempt inside their own
-   `integrations/<platform>/` folder where they belong.
+   by policy. The script flags accidental references. A
+   platform's own model identifier (the one the developer calls
+   on that platform's API) is exempt inside its matching
+   `integrations/<platform>/` folder where it belongs — refer
+   to the script source for the exact patterns and exemptions.
 5. Open the PR with a clear "what" and "why". Screenshots help
    for UI-heavy platforms (Claude Desktop, ChatGPT GPT editor).
 6. We review and merge based on quality and fit. Not every PR

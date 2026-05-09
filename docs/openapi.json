@@ -1012,6 +1012,229 @@
         }
       }
     },
+    "/api/v1/billing/topup/challenge": {
+      "post": {
+        "summary": "Create a hosted-payment challenge for end-user wallet pay",
+        "description": "Pattern C-lite: creates a payment challenge bound to the agent and returns a link the agent shows the end-user. The user opens the link, signs an EIP-3009 transferWithAuthorization in their wallet, and the page POSTs the signed payload to /sign. The agent polls /status until status='settled' then retries the original call.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount_usd_micros": {
+                    "type": "integer",
+                    "minimum": 100000,
+                    "maximum": 1000000000,
+                    "description": "$0.10 to $1000 in USD micros. Defaults to first preset when omitted."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge_id": {
+                      "type": "string"
+                    },
+                    "link_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "amount_usd_micros": {
+                      "type": "string"
+                    },
+                    "pay_to_address": {
+                      "type": "string"
+                    },
+                    "network": {
+                      "type": "string",
+                      "description": "CAIP-2, e.g. eip155:8453"
+                    },
+                    "asset_address": {
+                      "type": "string",
+                      "description": "USDC contract on the network"
+                    },
+                    "valid_after_unix": {
+                      "type": "string"
+                    },
+                    "valid_before_unix": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "signed",
+                        "settled",
+                        "expired",
+                        "failed"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          },
+          "503": {
+            "description": "x402 not configured on the operator side"
+          }
+        }
+      }
+    },
+    "/api/v1/billing/topup/status": {
+      "get": {
+        "summary": "Poll a hosted-payment challenge",
+        "description": "Pattern C-lite poll endpoint. Status progresses pending → signed → settled (or expired / failed). Agent must own the challenge.",
+        "parameters": [
+          {
+            "name": "challenge_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenge status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "signed",
+                        "settled",
+                        "expired",
+                        "failed"
+                      ]
+                    },
+                    "amount_usd_micros": {
+                      "type": "string"
+                    },
+                    "settled_tx_hash": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "failed_reason": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "expires_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "balance_usd_micros": {
+                      "type": "string"
+                    },
+                    "free_calls_remaining": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing challenge_id"
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          },
+          "403": {
+            "description": "Challenge belongs to a different agent"
+          },
+          "404": {
+            "description": "Challenge not found"
+          }
+        }
+      }
+    },
+    "/api/v1/billing/topup/sign": {
+      "post": {
+        "summary": "Submit signed EIP-3009 payload (called by the hosted page)",
+        "description": "Pattern C-lite: invoked from the /pay/[challengeId] page in the end-user's browser, NOT directly by the agent. Auth is the unguessable challenge_id. Server runs verify+settle through the CDP facilitator and credits the agent's balance.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "challenge_id",
+                  "payment_payload"
+                ],
+                "properties": {
+                  "challenge_id": {
+                    "type": "string"
+                  },
+                  "payment_payload": {
+                    "type": "object",
+                    "description": "x402 paymentPayload with EIP-3009 signed authorization (scheme 'exact')."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settled successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "402": {
+            "description": "Payment proof rejected by facilitator"
+          },
+          "404": {
+            "description": "Challenge not found"
+          },
+          "409": {
+            "description": "Challenge not in 'pending' state"
+          },
+          "410": {
+            "description": "Challenge expired"
+          },
+          "500": {
+            "description": "On-chain settle succeeded but balance write failed (operator reconciles)"
+          },
+          "502": {
+            "description": "Facilitator verify or settle threw"
+          },
+          "503": {
+            "description": "x402 not configured on the operator side"
+          }
+        }
+      }
+    },
     "/api/v1/openapi": {
       "get": {
         "summary": "OpenAPI spec for this API surface",

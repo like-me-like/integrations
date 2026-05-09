@@ -496,6 +496,44 @@ During the public preview, x402 enforcement may be off — calls
 past the free tier are still served while the ledger logs the
 would-be-charged amount. Production traffic is gated by balance.
 
+### Who pays — three patterns
+
+The wire-level x402 flow is silent on **who actually holds the
+wallet that pays**. Three patterns, in increasing build-cost on
+your side:
+
+**A. Integrator absorbs (default).** You (the developer) hold the
+wallet. Every end-user call decrements your balance. End-user
+monetisation is your decision (free, ad-supported, subscription,
+in-app credits) — invisible to us. Use the direct top-up endpoint
+below.
+
+**B. Pass-through pricing.** Same wire flow as A — you charge your
+end-users in fiat (Stripe, in-app purchase, subscription) and pay
+us in USDC. The user-facing billing stack is yours; we don't
+facilitate it.
+
+**C-lite. Hosted payment page for end-users with a wallet.** For
+end-users who already hold an EVM wallet and have USDC on Base
+(crypto-native users in Discord crypto bots, web3 dapps, agent-
+to-agent settlement), you can hand the payment off entirely:
+
+1. Bot calls `POST /api/v1/billing/topup/challenge` (see below).
+2. We return `{ challenge_id, link_url, expires_at, … }`.
+3. Bot shows `link_url` (or a QR of it) to the end-user.
+4. End-user opens the link on their phone; the page connects to
+   their wallet, builds the EIP-3009 typed-data, and the wallet
+   signs.
+5. Page POSTs the signed payload to `POST /api/v1/billing/topup/sign`
+   which runs verify + settle through CDP and credits the agent's
+   balance.
+6. Bot polls `GET /api/v1/billing/topup/status?challenge_id=…`
+   until status is `settled`, then retries the original API call.
+
+Walletless end-users (the majority of consumer apps in 2026) need
+patterns A or B; on-ramp + hosted billing portal for fully
+walletless users is on the roadmap but not shipped.
+
 ### Top up — challenge / response
 
 Step 1 — request the challenge (no X-Payment yet):
@@ -526,6 +564,87 @@ curl -s "$BASE/api/v1/billing/topup" \
 ```
 
 Successful settle returns `{ ok: true, credited_usd_micros, balance_usd_micros, on_chain_tx, network }`.
+
+### Hosted payment page (pattern C-lite)
+
+For end-users who already hold an EVM wallet, you can hand the
+payment off to them via a link.
+
+**Step 1 — agent creates a challenge.** Same auth as the rest;
+body matches the direct top-up endpoint:
+
+```sh
+curl -s "$BASE/api/v1/billing/topup/challenge" \
+  -X POST \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usd_micros": 5000000}'   # $5
+```
+
+Response:
+
+```json
+{
+  "challenge_id": "abc123…",
+  "link_url": "https://likemelike.com/pay/abc123…",
+  "amount_usd_micros": "5000000",
+  "pay_to_address": "0x…",
+  "network": "eip155:8453",
+  "asset_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "valid_after_unix": "…",
+  "valid_before_unix": "…",
+  "expires_at": "2026-05-09T17:30:00.000Z",
+  "status": "pending"
+}
+```
+
+**Step 2 — show `link_url` to the end-user.** A QR code of the URL
+works well for messaging-channel bots; for web bots the URL itself
+is enough. Example QR (any QR library):
+
+```js
+import QRCode from "qrcode";
+const qrSvg = await QRCode.toString(challenge.link_url, { type: "svg" });
+```
+
+**Step 3 — end-user signs.** The page connects to their wallet
+(Coinbase Wallet via in-app browser, MetaMask Mobile via deeplink,
+Rainbow, browser extensions), builds the EIP-3009
+`TransferWithAuthorization` typed-data, and the wallet signs. The
+page POSTs the signed payload to `/api/v1/billing/topup/sign`. No
+agent action required during this step.
+
+**Step 4 — bot polls for completion.** Same auth as the rest:
+
+```sh
+curl -s "$BASE/api/v1/billing/topup/status?challenge_id=abc123…" \
+  -H "X-LML-Agent-Id: $AGENT" | jq .
+```
+
+Response:
+
+```json
+{
+  "challenge_id": "abc123…",
+  "status": "pending",
+  "amount_usd_micros": "5000000",
+  "settled_tx_hash": null,
+  "failed_reason": null,
+  "expires_at": "2026-05-09T17:30:00.000Z",
+  "balance_usd_micros": "0",
+  "free_calls_remaining": 0
+}
+```
+
+`status` transitions: `pending` → `signed` → `settled`. Or
+`expired` (challenge timed out without a signature) / `failed`
+(verify or settle rejected). Once `settled`, the agent's balance
+includes the credited amount and the bot can retry its original
+API call.
+
+Poll every 2-3 seconds; challenges expire 15 minutes after
+creation. Don't poll for hours — re-create a fresh challenge if
+the user takes that long.
 
 ### Per-call cost model
 
