@@ -22,9 +22,17 @@ for cost.
 ## Pricing — paid API with per-end-user free tier
 
 **Like Me Like is a paid API.** You pay per call once the free tier is
-exhausted; payments settle on-chain via the
-[x402 protocol](https://www.x402.org) (USDC on Base, no account
-required, no card on file).
+exhausted; payments settle on a public crypto network — no account
+required, no card on file. Two payment rails are supported, both
+non-custodial:
+
+- **[x402](https://www.x402.org)** — USDC on Base. Stable USD pricing,
+  EVM-wallet sign flow.
+- **[L402](https://docs.lightning.engineering/the-lightning-network/l402)
+  / Lightning** — BOLT11 invoices, sub-second settle, scan-and-go
+  wallet UX. Better consumer-facing flow if your end-users hold
+  Bitcoin / Lightning wallets (Phoenix, Wallet of Satoshi, Zeus,
+  Strike, Cash App, Alby, etc.).
 
 The free tier and the billing key are **per end-user**, not per
 integration:
@@ -34,10 +42,10 @@ integration:
   distinct agent IDs (typically derived as `sha256(phone_number)` or
   similar stable hash). A single-user dev tool sends one.
 - **Each agent ID gets 10 free calls** (one-time, no monthly reset)
-  before x402 enforcement kicks in.
-- **After that, calls deduct from the agent's balance** — top up with
-  any amount of USDC via `POST /api/v1/billing/topup` and the x402
-  challenge / response flow.
+  before payment is required.
+- **After that, calls deduct from the agent's balance** — top up via
+  either rail. The agent's balance is shared across rails: you can
+  top up with USDC once and lightning later, or vice versa.
 
 That economic shape is important for how you wire up the integration:
 
@@ -48,8 +56,8 @@ That economic shape is important for how you wire up the integration:
 | A demo / quick test | A random agent ID per session | Each session burns one of the 10-call budget; reuse the same id while testing |
 
 See [`docs/agents.md` § Payments](docs/agents.md#payments-x402-via-coinbase-cdp)
-for the full top-up flow, and the per-platform README for the
-header-config snippet.
+for the full top-up flow (both x402 and Lightning), and the
+per-platform README for the header-config snippet.
 
 ## For developers
 

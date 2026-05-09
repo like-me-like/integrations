@@ -514,18 +514,34 @@ us in USDC. The user-facing billing stack is yours; we don't
 facilitate it.
 
 **C-lite. Hosted payment page for end-users with a wallet.** For
-end-users who already hold an EVM wallet and have USDC on Base
-(crypto-native users in Discord crypto bots, web3 dapps, agent-
-to-agent settlement), you can hand the payment off entirely:
+end-users who already hold a wallet, you can hand the payment off
+entirely. Two payment rails are supported, selectable per challenge
+via a `method` field:
 
-1. Bot calls `POST /api/v1/billing/topup/challenge` (see below).
-2. We return `{ challenge_id, link_url, expires_at, … }`.
-3. Bot shows `link_url` (or a QR of it) to the end-user.
-4. End-user opens the link on their phone; the page connects to
-   their wallet, builds the EIP-3009 typed-data, and the wallet
-   signs.
-5. Page POSTs the signed payload to `POST /api/v1/billing/topup/sign`
-   which runs verify + settle through CDP and credits the agent's
+- `method: "x402"` (default) — EIP-3009 USDC transfer on Base. The
+  user signs typed-data in their EVM wallet (Coinbase Wallet,
+  Base Wallet, MetaMask Mobile, Rainbow). Stable USD pricing.
+- `method: "lightning"` — Lightning Network (BOLT11 invoice via
+  Alby Hub + NWC). The user scans a QR or taps a `lightning:` URI
+  with their Lightning wallet (Phoenix, Wallet of Satoshi, Zeus,
+  Strike, Cash App, Alby). Sub-second settle, simpler UX for
+  Lightning-native users.
+
+The high-level shape is the same in both modes:
+
+1. Bot calls `POST /api/v1/billing/topup/challenge` with the
+   amount and (optionally) the `method`.
+2. We return `{ challenge_id, link_url, expires_at, … }` plus
+   method-specific fields (network/payTo/asset for x402,
+   invoice_bolt11/amount_sats for lightning).
+3. Bot shows `link_url` (or a QR of it) to the end-user. For
+   lightning the page also renders a QR of the BOLT11 directly so
+   the user can scan from their wallet without going through our
+   page first.
+4. End-user pays — either by signing in their EVM wallet (x402)
+   or by paying the invoice in their Lightning wallet (lightning).
+5. Page detects settlement (synchronous /sign for x402; polling
+   our /poll endpoint for lightning) and credits the agent's
    balance.
 6. Bot polls `GET /api/v1/billing/topup/status?challenge_id=…`
    until status is `settled`, then retries the original API call.
@@ -567,18 +583,21 @@ Successful settle returns `{ ok: true, credited_usd_micros, balance_usd_micros, 
 
 ### Hosted payment page (pattern C-lite)
 
-For end-users who already hold an EVM wallet, you can hand the
-payment off to them via a link.
+For end-users who already hold a wallet, you can hand the payment
+off to them via a link. Two payment methods supported.
 
-**Step 1 — agent creates a challenge.** Same auth as the rest;
-body matches the direct top-up endpoint:
+**Step 1 — agent creates a challenge.** Same auth as the rest. Add
+`"method": "lightning"` for the Lightning rail; omit (or
+`"method": "x402"`) for the default EIP-3009 USDC rail.
+
+x402 (default):
 
 ```sh
 curl -s "$BASE/api/v1/billing/topup/challenge" \
   -X POST \
   -H "X-LML-Agent-Id: $AGENT" \
   -H "Content-Type: application/json" \
-  -d '{"amount_usd_micros": 5000000}'   # $5
+  -d '{"amount_usd_micros": 5000000}'   # $5 in USDC
 ```
 
 Response:
@@ -586,6 +605,7 @@ Response:
 ```json
 {
   "challenge_id": "abc123…",
+  "method": "x402",
   "link_url": "https://likemelike.com/pay/abc123…",
   "amount_usd_micros": "5000000",
   "pay_to_address": "0x…",
@@ -598,6 +618,41 @@ Response:
 }
 ```
 
+Lightning:
+
+```sh
+curl -s "$BASE/api/v1/billing/topup/challenge" \
+  -X POST \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usd_micros": 5000000, "method": "lightning"}'
+```
+
+Response:
+
+```json
+{
+  "challenge_id": "abc123…",
+  "method": "lightning",
+  "link_url": "https://likemelike.com/pay/abc123…",
+  "amount_usd_micros": "5000000",
+  "amount_sats": 7250,
+  "btc_usd_rate": 68965.5,
+  "invoice_bolt11": "lnbc7250n1p5…",
+  "payment_hash_hex": "abc…",
+  "valid_after_unix": "…",
+  "valid_before_unix": "…",
+  "expires_at": "2026-05-09T17:30:00.000Z",
+  "status": "pending"
+}
+```
+
+`amount_sats` is computed from `amount_usd_micros` at the current
+BTC/USD spot rate (Coinbase, cached 30 s). The user pays the
+locked sats amount in their Lightning wallet; we credit the locked
+USD amount on the agent's balance. Volatility window = invoice
+TTL (15 min default).
+
 **Step 2 — show `link_url` to the end-user.** A QR code of the URL
 works well for messaging-channel bots; for web bots the URL itself
 is enough. Example QR (any QR library):
@@ -607,12 +662,22 @@ import QRCode from "qrcode";
 const qrSvg = await QRCode.toString(challenge.link_url, { type: "svg" });
 ```
 
-**Step 3 — end-user signs.** The page connects to their wallet
-(Coinbase Wallet via in-app browser, MetaMask Mobile via deeplink,
-Rainbow, browser extensions), builds the EIP-3009
-`TransferWithAuthorization` typed-data, and the wallet signs. The
-page POSTs the signed payload to `/api/v1/billing/topup/sign`. No
-agent action required during this step.
+**Step 3 — end-user pays.**
+
+For x402: the page connects to their EVM wallet (Coinbase Wallet
+via in-app browser, MetaMask Mobile via deeplink, Rainbow, browser
+extensions), builds the EIP-3009 `TransferWithAuthorization`
+typed-data, and the wallet signs. The page POSTs the signed
+payload to `/api/v1/billing/topup/sign`.
+
+For Lightning: the page renders a QR of the BOLT11 invoice + a
+"Open in wallet" button (`lightning:` URI scheme). The user scans
+or taps to pay in their Lightning wallet. The page polls
+`/api/v1/billing/topup/poll?challenge_id=…` (no auth) every 2 s
+to detect settlement; once Alby reports the invoice paid, the
+agent's balance is credited automatically.
+
+No agent action required during this step in either mode.
 
 **Step 4 — bot polls for completion.** Same auth as the rest:
 

@@ -1028,6 +1028,15 @@
                     "minimum": 100000,
                     "maximum": 1000000000,
                     "description": "$0.10 to $1000 in USD micros. Defaults to first preset when omitted."
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "x402",
+                      "lightning"
+                    ],
+                    "default": "x402",
+                    "description": "Payment rail. 'x402' = EIP-3009 USDC on Base; 'lightning' = BOLT11 via Alby/NWC. Selects which response shape and which payment UX the /pay page renders."
                   }
                 }
               }
@@ -1045,6 +1054,13 @@
                     "challenge_id": {
                       "type": "string"
                     },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "x402",
+                        "lightning"
+                      ]
+                    },
                     "link_url": {
                       "type": "string",
                       "format": "uri"
@@ -1053,15 +1069,39 @@
                       "type": "string"
                     },
                     "pay_to_address": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Set for x402 only."
                     },
                     "network": {
                       "type": "string",
-                      "description": "CAIP-2, e.g. eip155:8453"
+                      "nullable": true,
+                      "description": "Set for x402 only. CAIP-2, e.g. eip155:8453"
                     },
                     "asset_address": {
                       "type": "string",
-                      "description": "USDC contract on the network"
+                      "nullable": true,
+                      "description": "Set for x402 only. USDC contract."
+                    },
+                    "invoice_bolt11": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Set for lightning only. BOLT11 invoice."
+                    },
+                    "payment_hash_hex": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Set for lightning only."
+                    },
+                    "amount_sats": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Set for lightning only. Locked at challenge time."
+                    },
+                    "btc_usd_rate": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Set for lightning only. BTC/USD spot rate used to compute amount_sats."
                     },
                     "valid_after_unix": {
                       "type": "string"
@@ -1094,8 +1134,76 @@
           "401": {
             "description": "Missing X-LML-Agent-Id"
           },
+          "502": {
+            "description": "Lightning invoice generation failed (Alby unreachable)"
+          },
           "503": {
-            "description": "x402 not configured on the operator side"
+            "description": "x402 or l402 not configured on the operator side"
+          }
+        }
+      }
+    },
+    "/api/v1/billing/topup/poll": {
+      "get": {
+        "summary": "Public poll for hosted-payment challenges (no auth)",
+        "description": "Used by the /pay page to detect settlement without exposing agent credentials. Returns minimal status only. For Lightning challenges, this poll triggers an Alby lookupInvoice + balance credit if the invoice was just paid.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "challenge_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenge status (minimal)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge_id": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "x402",
+                        "lightning"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "signed",
+                        "settled",
+                        "expired",
+                        "failed"
+                      ]
+                    },
+                    "expires_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "newly_settled": {
+                      "type": "boolean",
+                      "description": "True if this poll was the one that flipped the row to settled."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing challenge_id"
+          },
+          "404": {
+            "description": "Challenge not found"
           }
         }
       }
@@ -1125,6 +1233,13 @@
                     "challenge_id": {
                       "type": "string"
                     },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "x402",
+                        "lightning"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -1140,7 +1255,8 @@
                     },
                     "settled_tx_hash": {
                       "type": "string",
-                      "nullable": true
+                      "nullable": true,
+                      "description": "x402: on-chain tx hash. lightning: payment_hash or preimage."
                     },
                     "failed_reason": {
                       "type": "string",
