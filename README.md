@@ -27,12 +27,18 @@ required, no card on file. Two payment rails are supported, both
 non-custodial:
 
 - **[x402](https://www.x402.org)** — USDC on Base. Stable USD pricing,
-  EVM-wallet sign flow.
+  EVM-wallet sign flow. Works with EOA wallets (MetaMask, Rainbow,
+  Trust, Coinbase Wallet legacy, programmatic agents using
+  `privateKeyToAccount`). Smart Wallets (Coinbase Smart Wallet /
+  Base Wallet, ERC-4337) are temporarily blocked by an upstream
+  CDP facilitator bug — see the wallet-compatibility table in
+  [`docs/agents.md`](docs/agents.md#hosted-payment-page-pattern-c-lite).
 - **[L402](https://docs.lightning.engineering/the-lightning-network/l402)
   / Lightning** — BOLT11 invoices, sub-second settle, scan-and-go
   wallet UX. Better consumer-facing flow if your end-users hold
   Bitcoin / Lightning wallets (Phoenix, Wallet of Satoshi, Zeus,
-  Strike, Cash App, Alby, etc.).
+  Strike, Cash App, Alby, etc.). Works with every wallet type
+  including Smart Wallets.
 
 The free tier and the billing key are **per end-user**, not per
 integration:

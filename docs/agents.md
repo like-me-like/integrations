@@ -520,18 +520,37 @@ via a `method` field:
 
 - `method: "x402"` (default) — Permit2 signed authorisation on Base
   USDC. The user signs typed-data in their EVM wallet. Stable USD
-  pricing. **Wallet-compatibility note:** the underlying CDP
-  facilitator's verify step currently does not perform on-chain
-  EIP-1271 / EIP-7702 signature checks. EOA wallets (plain private
-  key, e.g. MetaMask Mobile, viem `privateKeyToAccount`) work; some
-  Smart Wallets (Coinbase Smart Wallet / Base Wallet, which sign
-  via WebAuthn / passkey) are temporarily blocked at the verify
-  step. For consumer Smart Wallet flows use `lightning` for now.
+  pricing.
 - `method: "lightning"` — Lightning Network (BOLT11 invoice via
   Alby Hub + NWC). The user scans a QR or taps a `lightning:` URI
-  with their Lightning wallet (Phoenix, Wallet of Satoshi, Zeus,
-  Strike, Cash App, Alby). Sub-second settle, simpler UX for
+  with their Lightning wallet. Sub-second settle, simpler UX for
   Lightning-native users.
+
+**Wallet compatibility table.** Pick the rail that matches your
+end-user audience:
+
+| Wallet | x402 method | lightning method |
+| --- | --- | --- |
+| MetaMask (Mobile / extension) | ✓ | — |
+| Rainbow (EOA mode) | ✓ | — |
+| Trust Wallet | ✓ | — |
+| Coinbase Wallet (legacy / EOA mode) | ✓ | — |
+| Hardware wallets via WalletConnect (Ledger, Trezor) | ✓ | — |
+| Programmatic agents (viem `privateKeyToAccount`, ethers HD) | ✓ | — |
+| Coinbase Smart Wallet / Base Wallet (passkey) | ✗ pending [coinbase/x402#623](https://github.com/coinbase/x402/issues/623) | ✓ |
+| Argent / Safe / ZeroDev (ERC-4337) | ✗ pending [coinbase/x402#639](https://github.com/coinbase/x402/issues/639) | ✓ |
+| Phoenix / Wallet of Satoshi / Zeus / Strike / Cash App / Alby | — | ✓ |
+
+**Why some wallets are blocked on x402.** Coinbase's hosted x402
+facilitator currently rejects EIP-1271 / ERC-6492 wrapped
+signatures (used by all Smart Wallets including Coinbase's own).
+This is tracked in
+[coinbase/x402#623](https://github.com/coinbase/x402/issues/623) —
+the facilitator's verify step doesn't unwrap ERC-6492 before
+calling `verifyTypedData`. When the upstream fix ships, no client
+or server changes are needed on your side; Smart Wallet payments
+will start succeeding through the existing Permit2 path. For
+consumer Smart Wallet end-users today, use `method: "lightning"`.
 
 The high-level shape is the same in both modes:
 
