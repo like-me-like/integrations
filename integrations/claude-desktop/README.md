@@ -75,4 +75,4 @@ If Claude can't see the tools, run `tools/list` from the inspector
 or check the Claude Desktop logs (`~/Library/Logs/Claude/` on macOS).
 A 401 response means the `X-LML-Agent-Id` header is missing or
 malformed; a 402 means you've exhausted the 10-call free tier and
-need to top up (see [docs/agents.md §Payments](../../docs/agents.md#payments-x402-via-coinbase-cdp)).
+need to top up (see [Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp)).

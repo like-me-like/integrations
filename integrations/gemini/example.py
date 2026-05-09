@@ -7,7 +7,7 @@ Set GEMINI_API_KEY in the environment, plus an LML_AGENT_ID for the
 end-user identifier (8-256 ASCII chars; reuse across calls).
 
 Run:
-    python example.py "Interstellar is mijn lievelingsfilm — geef me een boek"
+    python example.py "Interstellar is my favorite film — give me a book"
 """
 
 import json

@@ -5,14 +5,10 @@ take an `X-LML-Agent-Id` header carrying a stable third-party-supplied
 end-user identifier (8-256 ASCII chars). First call from a new
 identifier auto-creates a shadow profile and grants 10 free calls.
 After that, an x402 USDC top-up gates further calls (see Payments
-below). Enforcement is gated by `LML_X402_ENFORCE`; while it's off,
-calls past the free tier are still served.
-
-The `BASE` URL below is the dev preview — replace with
-`https://likemelike.com` for production.
+below).
 
 ```sh
-BASE="https://likemelike-git-dev-likemelike.vercel.app"
+BASE="https://likemelike.com"
 AGENT="agent-test-$(openssl rand -hex 4)"   # any 8-256 ASCII chars
 ```
 
@@ -49,7 +45,7 @@ Examples:
 | 2 | best, recent | 4 | ~8 | ✓ |
 | 1 | best, recent, wild | 3 | ~6 | ✓ |
 | 3 | best, recent | 6 | ~12 | ✗ — too many cells |
-| 5 | best, recent | 10 | ~20 | ✗ — Yme's original failing case |
+| 5 | best, recent | 10 | ~20 | ✗ — too many cells |
 
 The website avoids this constraint via client-side variant
 splitting + parse-side salvage + per-cell top-ups via
@@ -193,9 +189,9 @@ curl -s "$BASE/api/v1/chat" \
   -H "X-LML-Agent-Id: $AGENT" \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "Interstellar is mijn lievelingsfilm, wat is het beste boek wat ik nu kan lezen, geef me 1 resultaat.",
+    "message": "Interstellar is my favorite film. What is the best book for me to read next? Give me one result.",
     "source": "api",
-    "locale": "nl"
+    "locale": "en"
   }' | jq .
 ```
 
@@ -204,7 +200,7 @@ Response shape:
 ```json
 {
   "conversation_id": "uuid-or-null",
-  "reply": "Op basis van Interstellar is 'Contact' van Carl Sagan een sterke keuze...",
+  "reply": "Building on Interstellar, 'Contact' by Carl Sagan is a strong pick...",
   "recommendations": [ { "type": "book", "title": "Contact", ... } ],
   "tool_calls": [ { "name": "recommend_scoped", "args": {...}, "ok": true } ],
   "latency_ms": 12450
@@ -220,14 +216,14 @@ First turn: omit `conversation_id`. The response returns one in the
 # Turn 1
 RESP=$(curl -s "$BASE/api/v1/chat" \
   -H "X-LML-Agent-Id: $AGENT" -H "Content-Type: application/json" \
-  -d '{"message":"Interstellar is mijn lievelingsfilm, wat is het beste boek?","source":"api","locale":"nl"}')
+  -d '{"message":"Interstellar is my favorite film, what is the best book?","source":"api","locale":"en"}')
 CONV=$(echo "$RESP" | jq -r .conversation_id)
 echo "$RESP" | jq .reply
 
 # Turn 2 — refers to turn 1's pick implicitly
 curl -s "$BASE/api/v1/chat" \
   -H "X-LML-Agent-Id: $AGENT" -H "Content-Type: application/json" \
-  -d "{\"message\":\"En een film in dezelfde sfeer?\",\"conversation_id\":\"$CONV\",\"locale\":\"nl\"}" | jq .reply
+  -d "{\"message\":\"And a film in the same mood?\",\"conversation_id\":\"$CONV\",\"locale\":\"en\"}" | jq .reply
 ```
 
 Conversations expire after 48 hours of inactivity.
@@ -330,8 +326,8 @@ curl -s "$BASE/api/v1/mcp" \
     "params":{
       "name":"ask",
       "arguments":{
-        "message":"Wat moet ik nu lezen?",
-        "locale":"nl",
+        "message":"What should I read next?",
+        "locale":"en",
         "display_name":"Sam",
         "liked_items":[
           {"title":"Interstellar","category":"movie"},
@@ -339,8 +335,8 @@ curl -s "$BASE/api/v1/mcp" \
           {"title":"Past Lives","category":"movie"}
         ],
         "first_touch":{
-          "country":"NL",
-          "timezone":"Europe/Amsterdam",
+          "country":"US",
+          "timezone":"America/New_York",
           "device":"mobile",
           "referrer":"whatsapp"
         }
@@ -353,16 +349,6 @@ Stable `X-LML-Agent-Id` per WhatsApp end-user (`sha256(phone_number)`)
 keeps the shadow profile growing across conversations — cohort
 prep only runs the FIRST time taste anchors arrive; later calls
 just reuse the now-warm cohort signal.
-
-### Models + cost
-
-The chat brain currently runs on Claude Sonnet 4.6 for tool-calling
-reliability during the testing phase. Each chat turn includes one
-LLM call to the brain plus one LLM call per `recommend_*` tool the
-brain triggers — so a typical "give me 1 book based on X" turn costs
-~$0.13 (Sonnet) + ~$0.005 (Lite for the recommend pipeline). When
-the chat path stabilises this swaps to Haiku 4.5 (~24× cheaper);
-recommend_* stays on Lite.
 
 ### Sources
 
@@ -440,8 +426,8 @@ curl -s "$BASE/api/v1/mcp" \
     "params": {
       "name": "ask",
       "arguments": {
-        "message": "Interstellar is mijn lievelingsfilm, wat is het beste boek?",
-        "locale": "nl"
+        "message": "Interstellar is my favorite film, what is the best book?",
+        "locale": "en"
       }
     }
   }' | jq '.result.structuredContent'
@@ -506,10 +492,9 @@ The flow:
    payload, retry with `X-Payment: <payload>`. Server verifies +
    settles via the Coinbase CDP facilitator → balance credited.
 
-Enforcement is gated by `LML_X402_ENFORCE` env var. Default OFF
-during the testing phase — calls past the free tier are still
-served, but the ledger logs the would-be-charged amount. Flip to
-ON in production once the operator wallet is set up.
+During the public preview, x402 enforcement may be off — calls
+past the free tier are still served while the ledger logs the
+would-be-charged amount. Production traffic is gated by balance.
 
 ### Top up — challenge / response
 
@@ -541,26 +526,6 @@ curl -s "$BASE/api/v1/billing/topup" \
 ```
 
 Successful settle returns `{ ok: true, credited_usd_micros, balance_usd_micros, on_chain_tx, network }`.
-
-### Operator setup (Vercel env vars)
-
-Set these on Vercel for the dev preview + production environments.
-**Never commit these values to the repo.**
-
-```
-CDP_API_KEY_ID=<from cdp.coinbase.com>
-CDP_API_KEY_SECRET=<from cdp.coinbase.com — keep secret>
-X402_PAY_TO_ADDRESS=0x…  # EVM wallet that receives USDC
-X402_NETWORK=eip155:84532  # Base Sepolia for testing; switch to eip155:8453 for mainnet
-LML_X402_ENFORCE=false  # flip to true once tested
-```
-
-Optional:
-
-```
-X402_FACILITATOR_URL=https://api.cdp.coinbase.com/platform/v2/x402  # default
-LML_X402_TOPUP_AMOUNTS=1000000,5000000,25000000  # $1, $5, $25 presets in USD micros
-```
 
 ### Per-call cost model
 

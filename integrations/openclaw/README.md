@@ -73,12 +73,12 @@ pass them through the `ask` tool's optional fields:
 {
   "name": "ask",
   "arguments": {
-    "message": "Wat moet ik nu lezen?",
-    "locale": "nl",
+    "message": "What should I read next?",
+    "locale": "en",
     "display_name": "Sam",
     "first_touch": {
-      "country": "NL",
-      "timezone": "Europe/Amsterdam",
+      "country": "US",
+      "timezone": "America/New_York",
       "device": "mobile",
       "referrer": "whatsapp"
     },

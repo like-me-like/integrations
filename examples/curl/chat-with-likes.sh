@@ -17,8 +17,8 @@ curl -s "https://likemelike.com/api/v1/chat" \
   -H "X-LML-Agent-Id: $AGENT" \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "Wat moet ik nu lezen? Iets met diepgang maar niet te zwaar.",
-    "locale": "nl",
+    "message": "What should I read next? Something with depth but not too heavy.",
+    "locale": "en",
     "display_name": "Sam",
     "liked_items": [
       {"title": "Interstellar", "category": "movie"},
@@ -26,9 +26,9 @@ curl -s "https://likemelike.com/api/v1/chat" \
       {"title": "Past Lives", "category": "movie"}
     ],
     "first_touch": {
-      "country": "NL",
-      "timezone": "Europe/Amsterdam",
+      "country": "US",
+      "timezone": "America/New_York",
       "device": "mobile",
-      "languages": ["nl-NL", "en-US"]
+      "languages": ["en-US"]
     }
   }' | jq '{reply, recommendations: .recommendations | map({title, type})}'

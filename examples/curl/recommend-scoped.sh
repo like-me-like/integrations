@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One book recommendation based on a film, in Dutch.
+# One book recommendation based on a film.
 #
 # Usage:  ./recommend-scoped.sh
 # Env:    LML_AGENT_ID (defaults to a random demo id)
@@ -15,5 +15,5 @@ curl -s "https://likemelike.com/api/v1/recommend/scoped" \
     "item": "Interstellar",
     "target_category": "book",
     "num_picks": 1,
-    "locale": "nl"
+    "locale": "en"
   }' | jq .

@@ -674,7 +674,7 @@
     "/api/v1/chat": {
       "post": {
         "summary": "Conversational entry point with tool-calling",
-        "description": "Natural-language input. The chat brain (currently Claude Sonnet for testing; planned swap to Haiku 4.5) parses intent and calls the atomic /api/v1/* endpoints as tools. Modes: stateful (omit conversation_id on first turn → server returns one; pass it back to accumulate history) OR stateless (pass previous_messages explicitly). Cell-budget rule applies inside any recommend_* tool calls — if you ask for more than ~10 results, the brain narrows and explains.",
+        "description": "Natural-language input. The chat brain parses intent and calls the atomic /api/v1/* endpoints as tools. Modes: stateful (omit conversation_id on first turn → server returns one; pass it back to accumulate history) OR stateless (pass previous_messages explicitly). Cell-budget rule applies inside any recommend_* tool calls — if you ask for more than ~10 results, the brain narrows and explains.",
         "requestBody": {
           "required": true,
           "content": {
