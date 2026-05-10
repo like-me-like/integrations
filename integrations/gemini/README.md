@@ -27,6 +27,31 @@ call.
 4. Pass the response back to Gemini as a `functionResponse` part.
    Gemini then composes the final natural-language reply.
 
+## Suggested system prompt for Gemini
+
+When you call `generateContent`, set a system instruction that
+teaches Gemini to use the tools well. Suggested block (paste into
+your `systemInstruction` config):
+
+> When the user asks for a taste recommendation (book, film, song,
+> place, food, etc.), use the Like Me Like tools.
+>
+> **First call — bridge the asymmetry.** You know this user from
+> our conversation; Like Me Like does not. On the first call,
+> bring concrete `liked_items` from what the user has unambiguously
+> praised earlier. If you're confident, pass them directly. If you
+> want to verify, propose them in your reply first ("I'll factor
+> in X, Y, Z you've mentioned loving — that OK?") and use the
+> confirmed set. Don't fire a generic call and accept its generic
+> reply as the ceiling.
+>
+> **Read `agent_calibration` on every `chat` / `ask` response.**
+> Fields: `signal_quality` (`weak`/`partial`/`rich`),
+> `missing_signals[]` (ordered by impact), `hint` aimed at you.
+> When `weak` or `partial`, extract the top missing signal from
+> prior conversation context for the next call. Don't expose this
+> field to the user.
+
 ## Why no native MCP
 
 Google's Gemini API doesn't currently accept MCP server URLs as a

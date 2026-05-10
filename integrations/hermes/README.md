@@ -42,6 +42,16 @@ natural language), `recommend_cross`, `recommend_scoped`,
 [OpenAPI spec](../../docs/openapi.json) or
 [`docs/agents.md`](../../docs/agents.md) for argument shapes.
 
+## Host-LLM instructions (recommended)
+
+The MCP `ask` tool's description already carries first-call-kickoff
+guidance + how to read `agent_calibration` — Hermes' host LLM picks
+this up automatically when it lists tools. No extra config needed
+to teach the host the right behaviour.
+
+For a quick orientation on what the host LLM will read at runtime,
+see [`docs/agents.md`](../../docs/agents.md#first-call-kickoff—bridge-the-asymmetry).
+
 ## Per-server tool filtering
 
 Hermes supports allow-listing tools per MCP server. If you only

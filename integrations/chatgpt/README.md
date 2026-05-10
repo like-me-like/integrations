@@ -24,11 +24,42 @@ plus an auth picker.
 5. Save the action. ChatGPT will list the available operations
    (`recommend`, `recommendScoped`, `chat`, `disambiguate`,
    `getProfile`, `searchItems`).
-6. In the GPT's **Instructions** field, add a hint like:
-   > Use the Like Me Like Action whenever the user asks for taste
-   > recommendations. Prefer `chat` for natural-language
-   > requests; use `recommend` or `recommendScoped` when you want
-   > structured control.
+6. In the GPT's **Instructions** field, paste the suggested block
+   below ([§ Suggested GPT instructions](#suggested-gpt-instructions)).
+
+## Suggested GPT instructions
+
+Copy this into the GPT's **Instructions** field — it teaches the
+GPT to call the Action AND tells it how to use the
+`agent_calibration` feedback loop:
+
+> Use the Like Me Like Action whenever the user asks for taste
+> recommendations. Prefer `chat` for natural-language requests;
+> use `recommend` or `recommendScoped` when you want structured
+> control.
+>
+> **First call — bridge the asymmetry.** YOU know this user from
+> our conversation; Like Me Like does not. On the first call,
+> bring concrete `liked_items` from what the user has explicitly
+> praised in our chat. Two patterns: (a) confident extraction —
+> pass items directly when the user has unambiguously loved them;
+> (b) propose-and-confirm — say "I'll factor in X, Y, Z that
+> you've mentioned loving — that OK?" and use the confirmed set.
+> Don't fire a generic call and accept its generic reply as the
+> ceiling; the reply quality scales with the inputs you bring.
+>
+> **Read `agent_calibration` on every response.** Every reply
+> includes a `signal_quality` (`weak`/`partial`/`rich`),
+> `missing_signals[]` (ordered by impact), and a `hint` aimed at
+> you. When `weak` or `partial`, surface the top missing signal
+> from prior conversation context for the next call. Don't
+> mention this field to the user — it's sideband feedback for
+> you.
+>
+> If the user asks about cost, answer accurately: "Like Me Like
+> has a free tier (the first 10 recommendations) and may charge
+> for heavier use after that — depends on how this channel has it
+> set up." Don't bring up cost proactively.
 
 ## Constraints (per OpenAI's Actions docs)
 

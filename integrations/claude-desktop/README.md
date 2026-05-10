@@ -55,6 +55,25 @@ Like tools listed in the tool inspector: `recommend_cross`,
 `recommend_scoped`, `disambiguate`, `get_item`, `search_items`,
 `get_profile`, `ask`.
 
+## How Claude uses the tools
+
+The MCP `ask` tool's description (served fresh from the LMLM
+server every time Claude Desktop connects) carries explicit
+guidance:
+
+- **First-call kickoff** — Claude bridges the asymmetry by bringing
+  concrete `liked_items` from your prior conversation history on
+  the first call, either as confident extraction (passes them
+  directly) or propose-and-confirm ("I'll factor in X, Y, Z that
+  you've mentioned loving — that OK?").
+- **`agent_calibration`** — every response includes a programmatic
+  feedback block (`signal_quality`, `missing_signals[]`, `hint`)
+  that tells Claude per-turn what would help on the next call.
+  Claude reads this automatically; you don't need to.
+
+No extra setup needed — the tool description carries the
+instructions, so Claude sees them when MCP tools are listed.
+
 ## What you can ask
 
 Once connected, just ask Claude things like:

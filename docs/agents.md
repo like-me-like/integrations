@@ -228,6 +228,83 @@ curl -s "$BASE/api/v1/chat" \
 
 Conversations expire after 48 hours of inactivity.
 
+### First-call kickoff — bridge the asymmetry
+
+The host LLM driving these calls (Claude in OpenClaw, ChatGPT
+custom GPT, Gemini agent, custom WhatsApp bot, etc.) typically has
+**months of conversation history** with the end-user. Like Me Like
+has none — every `X-LML-Agent-Id` starts cold.
+
+On the FIRST `ask` (or `/api/v1/chat`) call for a new end-user, the
+single highest-leverage thing the host can do is bring concrete
+`liked_items[]` derived from that prior history. A reply grounded
+in *"you mentioned loving Stoner and the Tarkovsky films a few
+weeks ago, so…"* beats a generic baseline by an order of magnitude.
+
+Two prescribed patterns for the host LLM:
+
+1. **Confident extraction.** If the user has unambiguously praised
+   specific titles/places/foods earlier, pass those directly as
+   `liked_items` on the first call. No need to re-ask.
+2. **Propose-and-confirm.** When candidates are plausible but you
+   want to verify, propose them in your reply BEFORE the call:
+   *"I'll factor in [X], [Y], and [Z] you've mentioned loving — that
+   OK?"* Use the confirmed set. This works especially well for
+   first-time LML users who haven't realised they need to volunteer
+   anchors.
+
+**Anti-pattern:** silently fire a generic call, get a generic reply,
+treat it as the product's ceiling. The reply quality scales with
+the inputs the host brings. The `agent_calibration` field on every
+response (see below) tells you per-turn when this is a problem.
+
+### Reading `agent_calibration` on every response
+
+Every chat-orchestrator response (`POST /api/v1/chat` JSON body and
+MCP `ask` `structuredContent`) includes a programmatic feedback
+block aimed at the **host LLM**, not the end-user:
+
+```json
+{
+  "agent_calibration": {
+    "signal_quality": "weak" | "partial" | "rich",
+    "applied_this_turn": {
+      "liked_items_count": 0,
+      "disliked_items_count": 0,
+      "has_first_touch": true,
+      "has_demographics": false,
+      "has_display_name": false,
+      "cohort_prep_ran": false,
+      "has_learned_profile": false
+    },
+    "missing_signals": ["liked_items", "display_name"],
+    "hint": "Bring 1-3 concrete liked_items on the next call. Strongest source: YOUR own conversation history with this user…"
+  }
+}
+```
+
+- `signal_quality` — `weak` means no learned profile yet, generic
+  baseline reply; `rich` means cluster_axes written, name known,
+  taste-grounded reply.
+- `missing_signals[]` — ordered by impact-per-character; element
+  `[0]` is the cheapest improvement.
+- `hint` — one English sentence the host LLM can follow as-is or
+  paraphrase. Targeted at the host, not the end-user.
+
+When `signal_quality` is `weak` or `partial`:
+
+1. Read `missing_signals[0]`.
+2. Try to surface that signal from the conversation context for the
+   next call (e.g. for `liked_items`, scan prior turns for "I love
+   …", "my favourite …", "I keep coming back to …" patterns; for
+   `display_name`, pull from the host's user profile).
+3. Pass it on the next call.
+
+This replaces having to memorise every passing rule. Each turn the
+calibration tells you what to do. **Don't expose the calibration
+field verbatim to the end-user** — it's sideband feedback over the
+JSON surface.
+
 ### Personalisation: liked_items, disliked_items, first_touch, user_demographics, gift_mode, display_name
 
 The same six optional fields are accepted on **all** these
