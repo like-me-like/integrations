@@ -1,6 +1,8 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
+lml_skill_version: "2026-05-10"
+lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
     requires:
@@ -162,6 +164,23 @@ This replaces having to remember every input from this SKILL. Each
 turn the calibration tells you what to do. Don't expose
 `agent_calibration` verbatim to the end-user — it's sideband
 feedback for you.
+
+## Keeping this skill up to date
+
+Your `SKILL.md` carries `lml_skill_version:` in its YAML frontmatter
+(currently `2026-05-10`). The canonical version lives in the
+public `like-me-like/integrations` repo; check it via:
+
+```sh
+curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
+```
+
+When the server reports a newer date than your local copy, re-fetch
+from `lml_skill_canonical_url` (also in the frontmatter) and restart
+OpenClaw with `/restart`. ISO dates compare lexically — a string
+compare is enough. See
+[`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
+for the full check script.
 
 ## Multi-tenant note
 

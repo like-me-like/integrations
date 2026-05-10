@@ -138,6 +138,28 @@ gets their own free tier and a clean billing identity. If you're a
 single-user assistant, one stable id reused across calls is fine.
 See "Pricing" above.
 
+## Skill versioning — keep your local SKILL.md current
+
+Two of the recipes ship a `SKILL.md` that the host runtime loads
+from disk (OpenClaw and Claude Skills). Once copied, those files
+don't auto-update. Each carries an `lml_skill_version: "YYYY-MM-DD"`
+field in its YAML frontmatter; compare it to the canonical version:
+
+```sh
+curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
+```
+
+When the server reports a newer date, re-fetch from the
+`lml_skill_canonical_url` (also in the frontmatter) and reload your
+host. Full check-script and walkthrough in
+[`docs/agents.md`](docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
+and changes by date in [`CHANGELOG.md`](CHANGELOG.md).
+
+The MCP tool description and the `agent_calibration` response field
+are server-driven — those update automatically on the next call. So
+in practice the SKILL.md is the only file integrators need to keep
+fresh, and only when its content changes (most weeks: it doesn't).
+
 ## Open source — contributions welcome
 
 This repo is MIT-licensed. We accept:

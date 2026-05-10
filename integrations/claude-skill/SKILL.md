@@ -1,6 +1,8 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
+lml_skill_version: "2026-05-10"
+lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
 ---
@@ -139,6 +141,21 @@ favourite …" patterns in the user's prior messages). This replaces
 having to remember every input from this SKILL — each turn the
 calibration tells you what to do. Don't expose
 `agent_calibration` verbatim to the end-user.
+
+## Keeping this skill up to date
+
+Your local copy carries `lml_skill_version:` in its YAML frontmatter
+(currently `2026-05-10`). Check the canonical version via:
+
+```sh
+curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
+```
+
+When the server reports a newer date, re-fetch from
+`lml_skill_canonical_url` (also in the frontmatter) and reload your
+skills. ISO dates compare lexically. See
+[`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
+for the full check script.
 
 ## Reply style
 

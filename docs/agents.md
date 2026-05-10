@@ -228,6 +228,64 @@ curl -s "$BASE/api/v1/chat" \
 
 Conversations expire after 48 hours of inactivity.
 
+### Skill versioning — checking if your local SKILL.md is outdated
+
+Two of the integration recipes ship a `SKILL.md` file that the host
+runtime loads from disk:
+
+- `integrations/openclaw/SKILL.md`
+- `integrations/claude-skill/SKILL.md`
+
+These files don't update themselves. If you copied them into a
+ClawHub install or a local Claude skills directory weeks ago, you're
+running whatever version you copied. To check whether the canonical
+copy in the public repo has moved:
+
+```sh
+# What's the canonical version?
+curl -s "$BASE/api/v1/skills/versions" | jq .
+
+# Returns:
+# {
+#   "skills": [
+#     { "id": "claude-skill", "version": "2026-05-10",
+#       "canonical_url": "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md",
+#       "browse_url":    "https://github.com/like-me-like/integrations/blob/main/integrations/claude-skill/SKILL.md" },
+#     { "id": "openclaw",     "version": "2026-05-10", ... }
+#   ],
+#   "changelog_url": "https://github.com/like-me-like/integrations/blob/main/CHANGELOG.md",
+#   ...
+# }
+```
+
+Compare against the `lml_skill_version:` field in the YAML
+frontmatter of your local SKILL.md. ISO dates compare lexically, so
+a string compare works:
+
+```sh
+LOCAL=$(awk '/^lml_skill_version:/ {gsub(/"/,""); print $2}' \
+  ~/path/to/your/SKILL.md)
+REMOTE=$(curl -s "$BASE/api/v1/skills/versions" \
+  | jq -r '.skills[] | select(.id=="openclaw") | .version')
+[ "$LOCAL" = "$REMOTE" ] && echo "up to date" \
+  || echo "local: $LOCAL → remote: $REMOTE — re-fetch"
+```
+
+When the dates don't match, re-fetch the latest:
+
+```sh
+curl -fL "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md" \
+  -o ~/path/to/your/SKILL.md
+```
+
+Then restart your host (OpenClaw `/restart`, Claude Desktop quit-
+and-reopen, etc.) so the new file is re-loaded.
+
+Skill-runtime hosts that automate this check are welcome to
+poll `/api/v1/skills/versions` periodically and surface "skill is
+behind by N days" to the operator. The endpoint is auth-free,
+cached (1 h s-maxage), and stable.
+
 ### First-call kickoff — bridge the asymmetry
 
 The host LLM driving these calls (Claude in OpenClaw, ChatGPT

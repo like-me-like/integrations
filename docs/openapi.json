@@ -636,6 +636,60 @@
         }
       }
     },
+    "/api/v1/skills/versions": {
+      "get": {
+        "summary": "Canonical skill version stamps",
+        "description": "Returns the latest version-stamp (ISO date string) on each shipped SKILL.md in the public like-me-like/integrations repo, plus the canonical URLs to fetch the latest content. Integrators compare these dates against the lml_skill_version frontmatter field on their local copy — when the server reports a newer date, the local skill is behind. No auth required.",
+        "responses": {
+          "200": {
+            "description": "Skill versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "openclaw"
+                          },
+                          "version": {
+                            "type": "string",
+                            "example": "2026-05-10"
+                          },
+                          "canonical_url": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "Raw URL of the latest SKILL.md content."
+                          },
+                          "browse_url": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "Human-friendly GitHub URL for the same file."
+                          }
+                        }
+                      }
+                    },
+                    "changelog_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "docs_url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profiles/{slug}": {
       "get": {
         "summary": "Public profile by slug",
