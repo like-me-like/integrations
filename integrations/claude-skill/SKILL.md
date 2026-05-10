@@ -11,6 +11,28 @@ You have access to Like Me Like's recommendation tools via the MCP
 server `like-me-like`. Use them whenever the user asks for taste
 recommendations.
 
+## First-call kickoff — bridge the asymmetry
+
+You know this user from prior conversation; Like Me Like does not.
+On the FIRST `ask` call for a new end-user, the single most valuable
+thing you can do is bring concrete `liked_items[]` from what YOU
+already know about them.
+
+Two good patterns:
+
+1. **Confident extraction** — if the user has unambiguously praised
+   specific titles/places/foods earlier, pass those directly. No
+   need to re-ask.
+2. **Propose-and-confirm** — when candidates are plausible but you
+   want to verify, propose them in your reply BEFORE the call: "I'll
+   factor in [X], [Y], and [Z] you've mentioned loving — that OK?"
+   Then send the confirmed set.
+
+What NOT to do: silently fire a generic call and treat its generic
+reply as the product's ceiling. The reply quality scales with the
+inputs you bring. `agent_calibration` on every response tells you
+per-turn when this is a problem.
+
 ## When to use
 
 Recognise these patterns:

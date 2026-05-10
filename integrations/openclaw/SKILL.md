@@ -13,6 +13,30 @@ metadata:
 Use the `like-me-like` MCP server (configured in
 `openclaw.config.json`) for any taste-recommendation question.
 
+## First-call kickoff — bridge the asymmetry
+
+You know this user from prior conversation; Like Me Like does not.
+On the FIRST `ask` call for a new end-user, the single most valuable
+thing you can do is bring concrete `liked_items[]` from what YOU
+already know about them.
+
+Two good patterns:
+
+1. **Confident extraction** — if the user has unambiguously praised
+   specific titles/places/foods in earlier conversation, pass those
+   directly. No need to re-ask.
+2. **Propose-and-confirm** — when candidates are plausible but you
+   want to verify, propose them in your reply BEFORE the call: "I'll
+   factor in [X], [Y], and [Z] you've mentioned loving — that OK?"
+   Then send the confirmed set. This works especially well for
+   first-time LML users who haven't realised they need to volunteer
+   anchors.
+
+What NOT to do: silently fire a generic call, get a generic reply,
+and treat it as the product's ceiling. The reply quality scales
+with the inputs you bring. The `agent_calibration` field on every
+response tells you per-turn when this is a problem.
+
 ## When to call
 
 - Cross-domain: "What's a good book based on Interstellar?",
