@@ -295,21 +295,38 @@ has none — every `X-LML-Agent-Id` starts cold.
 
 On the FIRST `ask` (or `/api/v1/chat`) call for a new end-user, the
 single highest-leverage thing the host can do is bring concrete
-`liked_items[]` derived from that prior history. A reply grounded
-in *"you mentioned loving Stoner and the Tarkovsky films a few
-weeks ago, so…"* beats a generic baseline by an order of magnitude.
+anchors derived from that prior history — both `liked_items[]` AND
+`disliked_items[]`. A reply grounded in *"you've raved about Stoner
+and the Tarkovsky films but said you bounce off horror, so…"* beats
+a generic baseline by an order of magnitude.
+
+**Likes and dislikes are equally important.** Negative space is
+hard for the cohort pipeline to guess; an explicit *"I bounce off
+slow cinema"* sharpens the cohort match as much as a positive
+anchor does.
+
+**Critical: LMLM does not parse `message` text for preferences.**
+Only the structured `liked_items[]` and `disliked_items[]` arrays
+land in the user profile and feed cohort scoring. If the user says
+*"Deep Impact was so much fun"* in `message` and the host doesn't
+extract that into `liked_items`, the pipeline never sees it as a
+positive anchor — even if the chat brain mentions Deep Impact in
+the reply. Same for negatives: *"hate horror"* in the text alone is
+invisible. Extraction is the host's job; structured arrays are the
+contract.
 
 Two prescribed patterns for the host LLM:
 
 1. **Confident extraction.** If the user has unambiguously praised
-   specific titles/places/foods earlier, pass those directly as
-   `liked_items` on the first call. No need to re-ask.
+   OR rejected specific titles / places / foods / genres earlier,
+   pass them directly: praised items as `liked_items[]`, rejected
+   ones as `disliked_items[]`. No need to re-ask.
 2. **Propose-and-confirm.** When candidates are plausible but you
    want to verify, propose them in your reply BEFORE the call:
-   *"I'll factor in [X], [Y], and [Z] you've mentioned loving — that
-   OK?"* Use the confirmed set. This works especially well for
-   first-time LML users who haven't realised they need to volunteer
-   anchors.
+   *"I'll factor in [X], [Y] you've mentioned loving and [Z] you've
+   said isn't your thing — that OK?"* Use the confirmed sets. This
+   works especially well for first-time LML users who haven't
+   realised they need to volunteer anchors on either side.
 
 **Anti-pattern:** silently fire a generic call, get a generic reply,
 treat it as the product's ceiling. The reply quality scales with

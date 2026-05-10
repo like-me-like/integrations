@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-05-10"
+lml_skill_version: "2026-05-10.1"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -17,18 +17,26 @@ recommendations.
 
 You know this user from prior conversation; Like Me Like does not.
 On the FIRST `ask` call for a new end-user, the single most valuable
-thing you can do is bring concrete `liked_items[]` from what YOU
-already know about them.
+thing you can do is bring concrete anchors from what YOU already
+know about them — both `liked_items[]` AND `disliked_items[]`.
+
+**Likes and dislikes are equally important.** Negative space is hard
+to guess; an explicit "I bounce off horror" sharpens cohort matching
+as much as a positive anchor. **Critical:** LMLM does NOT auto-
+extract preferences from the `message` text — only the structured
+arrays feed the cohort pipeline. Whatever you don't pass in
+`liked_items[]` / `disliked_items[]` is invisible.
 
 Two good patterns:
 
 1. **Confident extraction** — if the user has unambiguously praised
-   specific titles/places/foods earlier, pass those directly. No
-   need to re-ask.
-2. **Propose-and-confirm** — when candidates are plausible but you
-   want to verify, propose them in your reply BEFORE the call: "I'll
-   factor in [X], [Y], and [Z] you've mentioned loving — that OK?"
-   Then send the confirmed set.
+   OR rejected specific titles / places / foods / genres earlier,
+   pass them directly: praises as `liked_items`, rejections as
+   `disliked_items`.
+2. **Propose-and-confirm** — propose candidates in your reply BEFORE
+   the call: "I'll factor in [X], [Y] you've mentioned loving and
+   [Z] you've said isn't your thing — that OK?" Then send the
+   confirmed sets.
 
 What NOT to do: silently fire a generic call and treat its generic
 reply as the product's ceiling. The reply quality scales with the
@@ -145,7 +153,7 @@ calibration tells you what to do. Don't expose
 ## Keeping this skill up to date
 
 Your local copy carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-10`). Check the canonical version via:
+(currently `2026-05-10.1`). Check the canonical version via:
 
 ```sh
 curl -s https://www.likemelike.com/api/v1/skills/versions | jq .

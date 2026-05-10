@@ -13,6 +13,28 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-05-10.1]
+
+### Changed — equal weight to dislikes in first-call kickoff
+
+- **Kickoff guidance now pairs `liked_items[]` and `disliked_items[]`.**
+  Previous version focused on positives only. Negative space is
+  hard for the cohort pipeline to guess from likes alone — explicit
+  rejections (genres / titles the user has bounced off) sharpen the
+  match meaningfully, so the host should extract both directions
+  with the same diligence.
+- **Tool description / SKILL.md / agents.md** all explicitly state:
+  LMLM does NOT parse `message` text for preferences; only the
+  structured `liked_items[]` / `disliked_items[]` arrays feed the
+  cohort pipeline. The host LLM is the extractor.
+- **`agent_calibration.missing_signals`** gains `disliked_items` as
+  a follow-up signal (only flagged once likes have arrived). New
+  hint case explains the disliked_items shape and where to source
+  negatives from.
+- **Same-day sub-revision** (`.1` suffix) so integrators who pulled
+  the earlier 2026-05-10 SKILL today see "remote is newer" on the
+  lexical version compare.
+
 ## [2026-05-10]
 
 ### Added — agent quality of life

@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-05-10"
+lml_skill_version: "2026-05-10.1"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -19,20 +19,30 @@ Use the `like-me-like` MCP server (configured in
 
 You know this user from prior conversation; Like Me Like does not.
 On the FIRST `ask` call for a new end-user, the single most valuable
-thing you can do is bring concrete `liked_items[]` from what YOU
-already know about them.
+thing you can do is bring concrete anchors from what YOU already
+know about them — both `liked_items[]` AND `disliked_items[]`.
+
+**Likes and dislikes are equally important.** Negative space is hard
+to guess; an explicit "I bounce off horror" or "no slow cinema"
+sharpens cohort matching as much as a positive anchor does.
+**Critical:** LMLM does NOT auto-extract preferences from the
+`message` text — only the structured `liked_items[]` and
+`disliked_items[]` arrays land in the user profile and feed cohort
+scoring. If you mention "user hates X" in `message` but don't put
+X in `disliked_items`, X is invisible to the pipeline.
 
 Two good patterns:
 
 1. **Confident extraction** — if the user has unambiguously praised
-   specific titles/places/foods in earlier conversation, pass those
-   directly. No need to re-ask.
+   OR rejected specific titles / places / foods / genres earlier,
+   pass them directly: praised items as `liked_items`, rejected
+   ones as `disliked_items`. No need to re-ask.
 2. **Propose-and-confirm** — when candidates are plausible but you
-   want to verify, propose them in your reply BEFORE the call: "I'll
-   factor in [X], [Y], and [Z] you've mentioned loving — that OK?"
-   Then send the confirmed set. This works especially well for
-   first-time LML users who haven't realised they need to volunteer
-   anchors.
+   want to verify, propose them in your reply BEFORE the call:
+   "I'll factor in [X], [Y] you've mentioned loving and [Z] you've
+   said isn't your thing — that OK?" Then send the confirmed sets.
+   This works especially well for first-time LML users who haven't
+   realised they need to volunteer anchors on either side.
 
 What NOT to do: silently fire a generic call, get a generic reply,
 and treat it as the product's ceiling. The reply quality scales
@@ -168,7 +178,7 @@ feedback for you.
 ## Keeping this skill up to date
 
 Your `SKILL.md` carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-10`). The canonical version lives in the
+(currently `2026-05-10.1`). The canonical version lives in the
 public `like-me-like/integrations` repo; check it via:
 
 ```sh
