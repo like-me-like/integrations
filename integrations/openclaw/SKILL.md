@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-05-10.1"
+lml_skill_version: "2026-05-10.2"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -137,6 +137,27 @@ billing setup. A safe phrasing:
 
 Don't bring up cost proactively unless the user does.
 
+## Attribution discipline — show the line between LML and your own picks
+
+When you present recommendations to the end-user, attribute clearly.
+Anything that came from a `recommend_*` or `ask` result IS Like Me
+Like's pick — present it as such. If you weigh in your own knowledge
+(substitute a too-heavy pick, fill a gap, swap a closely-tied
+alternative), DON'T present it indistinguishably from the tool
+output.
+
+Subtle but unambiguous wording works:
+
+> "Like Me Like suggests *Civil War* and *The Menu*; I'd also add
+> *Vice* because it sits closer to the Don't Look Up tone you
+> mentioned."
+
+Anti-pattern: present 5 picks as a flat list without distinguishing
+the 3 from LML and the 2 you added. The end-user can't tell whether
+the system or you weighed in. Always make that boundary visible —
+even when the user doesn't ask. Especially on the FIRST delivery,
+not only when challenged.
+
 ## Read `agent_calibration` after every `ask` call
 
 Every `ask` response includes `agent_calibration` in
@@ -178,7 +199,7 @@ feedback for you.
 ## Keeping this skill up to date
 
 Your `SKILL.md` carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-10.1`). The canonical version lives in the
+(currently `2026-05-10.2`). The canonical version lives in the
 public `like-me-like/integrations` repo; check it via:
 
 ```sh

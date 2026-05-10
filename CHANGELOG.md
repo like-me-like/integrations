@@ -13,6 +13,36 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-05-10.2]
+
+### Added — host-side attribution + agent-side observability
+
+- **Attribution discipline section** in both SKILL.md files. When
+  the host LLM presents recommendations to the end-user, mark the
+  line between LML output and the host's own additions ("LML
+  suggests X, Y; I'd also add Z because…"). Anti-pattern is calling
+  out specifically: 5 picks as a flat list with no marking.
+- **`agent_calibration` on atomic recommend tools.** The structured
+  output of `recommend_cross`, `recommend_scoped`, and the JSON
+  body of `POST /api/v1/recommend/scoped` now carries the same
+  signal-quality / missing-signals / hint block that `ask` returns.
+  Hosts who skip the chat brain still get per-call feedback.
+- **gift_mode heuristic.** Server-side detection of gift-context
+  patterns ("voor [naam]", "verjaardag", "for my friend",
+  "een cadeau voor X") in the user's message. When detected AND
+  `gift_mode` was NOT passed, `gift_mode` lands at the TOP of
+  `agent_calibration.missing_signals` with a hint warning about
+  profile pollution. Multilingual (Dutch + English at minimum);
+  conservative (self-reference patterns suppress).
+- **`allow_source_variants` override.** Default behaviour stays
+  unchanged: recommendations are NEVER variants of the source
+  item — not in the same category and not across categories
+  (validator rules B + D enforce this). When the user explicitly
+  asks for derivatives ("the soundtrack of X", "the book version
+  of Y", "another work by [creator]"), the host LLM can now pass
+  `allow_source_variants: true` on `recommend_*` tools (or the
+  REST body) to skip rules B + D for that one call.
+
 ## [2026-05-10.1]
 
 ### Changed — equal weight to dislikes in first-call kickoff

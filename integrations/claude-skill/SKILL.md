@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-05-10.1"
+lml_skill_version: "2026-05-10.2"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -117,6 +117,23 @@ user, paid after that — depending on how this channel has it
 configured"). Don't bring up cost proactively unless asked. Don't
 claim it's free if you don't know the channel's billing setup.
 
+## Attribution discipline — show the line between LML and your own picks
+
+When you present recommendations to the end-user, attribute clearly.
+Anything from a `recommend_*` or `ask` result IS Like Me Like's
+pick. If you add your own (substitute a too-heavy pick, fill a gap,
+swap an alternative), DON'T present them indistinguishably.
+
+Subtle works:
+
+> "Like Me Like suggests *Civil War* and *The Menu*; I'd also add
+> *Vice* because it sits closer to the Don't Look Up tone you
+> mentioned."
+
+Anti-pattern: 5 picks as a flat list with no marking of which came
+from LML and which you added. Be proactive — mark the boundary on
+first delivery, not only when challenged.
+
 ## Read `agent_calibration` after every `ask` call
 
 Every `ask` response includes `agent_calibration` in
@@ -153,7 +170,7 @@ calibration tells you what to do. Don't expose
 ## Keeping this skill up to date
 
 Your local copy carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-10.1`). Check the canonical version via:
+(currently `2026-05-10.2`). Check the canonical version via:
 
 ```sh
 curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
