@@ -101,6 +101,44 @@ billing setup. A safe phrasing:
 
 Don't bring up cost proactively unless the user does.
 
+## Read `agent_calibration` after every `ask` call
+
+Every `ask` response includes `agent_calibration` in
+`structuredContent` — programmatic feedback about the signal quality
+of THIS turn and what to send next time:
+
+```json
+{
+  "agent_calibration": {
+    "signal_quality": "weak" | "partial" | "rich",
+    "applied_this_turn": {
+      "liked_items_count": 0,
+      "has_display_name": false,
+      "has_demographics": false,
+      "has_first_touch": true,
+      "cohort_prep_ran": false,
+      "has_learned_profile": false
+    },
+    "missing_signals": ["liked_items", "display_name"],
+    "hint": "Ask the user (or extract from prior chat context) 1-3 things they've explicitly loved..."
+  }
+}
+```
+
+Treat `hint` as a directive aimed at YOU (the host LLM), not the
+end-user. When `signal_quality` is `weak` or `partial`:
+
+1. Read `missing_signals[0]` (highest-impact improvement).
+2. Scan the user's prior conversation for that signal — e.g. for
+   `liked_items`, look for "I love …", "my favourite …", "I keep
+   coming back to …" patterns.
+3. Pass it on the NEXT call (or this one if you're about to retry).
+
+This replaces having to remember every input from this SKILL. Each
+turn the calibration tells you what to do. Don't expose
+`agent_calibration` verbatim to the end-user — it's sideband
+feedback for you.
+
 ## Multi-tenant note
 
 This skill's MCP config uses a single `X-LML-Agent-Id` (set in

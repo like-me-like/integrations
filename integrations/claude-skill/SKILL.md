@@ -85,6 +85,39 @@ user, paid after that — depending on how this channel has it
 configured"). Don't bring up cost proactively unless asked. Don't
 claim it's free if you don't know the channel's billing setup.
 
+## Read `agent_calibration` after every `ask` call
+
+Every `ask` response includes `agent_calibration` in
+`structuredContent` — programmatic feedback about the signal quality
+of THIS turn and what to send next time:
+
+```json
+{
+  "agent_calibration": {
+    "signal_quality": "weak" | "partial" | "rich",
+    "applied_this_turn": {
+      "liked_items_count": 0,
+      "has_display_name": false,
+      "has_demographics": false,
+      "has_first_touch": true,
+      "cohort_prep_ran": false,
+      "has_learned_profile": false
+    },
+    "missing_signals": ["liked_items", "display_name"],
+    "hint": "Ask the user (or extract from prior chat context) 1-3 things they've explicitly loved..."
+  }
+}
+```
+
+Treat `hint` as a directive aimed at YOU, not the end-user. When
+`signal_quality` is `weak` or `partial`, read `missing_signals[0]`
+and try to surface that signal from the conversation context for
+the next call (e.g. for `liked_items`, scan for "I love …", "my
+favourite …" patterns in the user's prior messages). This replaces
+having to remember every input from this SKILL — each turn the
+calibration tells you what to do. Don't expose
+`agent_calibration` verbatim to the end-user.
+
 ## Reply style
 
 Ground your reply in the items returned. Reference them by title,
