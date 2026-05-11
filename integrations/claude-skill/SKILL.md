@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-05-11"
+lml_skill_version: "2026-05-11.1"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -170,7 +170,7 @@ calibration tells you what to do. Don't expose
 ## Keeping this skill up to date
 
 Your local copy carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-11`). Check the canonical version via:
+(currently `2026-05-11.1`). Check the canonical version via:
 
 ```sh
 curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
@@ -181,6 +181,26 @@ When the server reports a newer date, re-fetch from
 skills. ISO dates compare lexically. See
 [`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
 for the full check script.
+
+## Undoing anchors (unlike / undislike)
+
+When a previous turn put the wrong anchors on the user's profile
+— typical trigger: `agent_calibration.missing_signals[0]` was
+`gift_mode` and the items belonged to someone else — pass
+`unlike_items[]` (and/or `undislike_items[]`) on your next call.
+
+String-array or `{title, category?}` both work; matching is
+case-insensitive. Combine with `liked_items + gift_mode: true` in
+ONE call to do the "those should have been a gift" recovery in
+a single round-trip:
+
+```json
+{
+  "unlike_items": ["Liverpool FC", "Mohamed Salah"],
+  "liked_items": [{"title":"Liverpool FC","category":"sportteam"}],
+  "gift_mode": true
+}
+```
 
 ## Wikipedia URLs in recommendations
 

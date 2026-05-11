@@ -397,6 +397,14 @@ surfaces — pass any subset:
   Each entry: `{ title: string, category?: string }`. 1-5 is
   plenty; max 20. **Highest-impact signal**.
 - `disliked_items[]` — same shape, for explicit negatives.
+- `unlike_items[]` / `undislike_items[]` — titles to REMOVE from
+  the persisted profile (undo, mirrors the website's thumb-toggle).
+  Accepts either string array (`["Liverpool FC", "Mohamed Salah"]`)
+  or the same `{ title, category? }` shape — category ignored for
+  the match. Matching is case-insensitive, accent-folded,
+  parenthetical-stripped. Combine with `liked_items + gift_mode:
+  true` in one call to do the "those should have been a gift"
+  recovery in a single round-trip.
 - `first_touch` — cold-start cohort hint when no liked_items yet.
   Mirrors what the website captures from `device_profile` +
   `first_visit_context` so the same fields generalise across

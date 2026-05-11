@@ -13,6 +13,26 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-05-11.1]
+
+### Added — host LLMs can undo anchors
+
+- **`unlike_items[]` / `undislike_items[]`** as inputs on every
+  personalisation-accepting surface (`ask` tool args, `recommend_cross`
+  / `recommend_scoped` tool args, `/api/v1/chat` body,
+  `/api/v1/recommend{,/scoped}` body). Mirrors the website's
+  thumb-toggle undo for host LLMs. Two shapes accepted: string array
+  (`["Liverpool FC", "Mohamed Salah"]`) or the same
+  `{title, category?}` shape as `liked_items`. Matching is
+  case-insensitive, accent-folded, parenthetical-stripped.
+- The typical recovery pattern fits in one round-trip: pass
+  `unlike_items` with the bad anchors AND `liked_items` with the
+  same titles AND `gift_mode: true` — the server removes the bad
+  anchors, then re-applies as a gift session so they don't
+  pollute the main profile a second time.
+- Both SKILL.md files gain an "Undoing anchors" section explaining
+  the contract.
+
 ## [2026-05-11]
 
 ### Added — Wikipedia URLs in recommendations + admin recovery tool

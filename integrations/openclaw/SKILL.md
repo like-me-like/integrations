@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-05-11"
+lml_skill_version: "2026-05-11.1"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -199,7 +199,7 @@ feedback for you.
 ## Keeping this skill up to date
 
 Your `SKILL.md` carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-11`). The canonical version lives in the
+(currently `2026-05-11.1`). The canonical version lives in the
 public `like-me-like/integrations` repo; check it via:
 
 ```sh
@@ -212,6 +212,63 @@ OpenClaw with `/restart`. ISO dates compare lexically — a string
 compare is enough. See
 [`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
 for the full check script.
+
+## Undoing anchors (unlike / undislike)
+
+When you realise a previous turn put the wrong anchors on the
+user's profile — most often when `agent_calibration.missing_signals[0]`
+on a prior response was `gift_mode` and the items you passed
+actually belonged to someone else — roll them back on your next
+tool call via `unlike_items[]` / `undislike_items[]`.
+
+Two shapes accepted, like `liked_items`:
+
+```json
+{
+  "unlike_items": ["Liverpool FC", "Mohamed Salah"]
+}
+```
+
+or
+
+```json
+{
+  "unlike_items": [
+    { "title": "Liverpool FC", "category": "sportteam" },
+    { "title": "Mohamed Salah", "category": "persoon" }
+  ]
+}
+```
+
+Category is ignored for matching; titles are case-insensitive
+and accent-folded. The server removes the matching entries from
+`user_taste_profiles.liked` (or `.disliked` for `undislike_items`)
+and re-derives the summary + cluster_axes + cohort to reflect
+the rollback.
+
+**The common pattern — "convert past anchors to a gift query in
+retrospect"** — fits in one round-trip. Same tool call:
+
+```json
+{
+  "message": "okay let me try those Liverpool picks again but as a gift for Jesse",
+  "unlike_items": ["Liverpool FC", "Mohamed Salah"],
+  "liked_items": [
+    { "title": "Liverpool FC", "category": "sportteam" },
+    { "title": "Mohamed Salah", "category": "persoon" }
+  ],
+  "gift_mode": true
+}
+```
+
+The server: (1) removes the bad anchors, (2) treats this turn as
+gift_mode so the same anchors don't re-pollute the main profile,
+(3) routes the recommendations through gift_sessions. One call,
+clean recovery.
+
+Don't proactively suggest the undo to the user unless they signal
+the misclassification themselves — but DO react when they say
+"wait, that was for [name]" or "no I bounced off that one".
 
 ## Wikipedia URLs in recommendations
 
