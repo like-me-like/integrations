@@ -636,6 +636,126 @@
         }
       }
     },
+    "/api/v1/me": {
+      "get": {
+        "summary": "Caller's own taste profile (introspection)",
+        "description": "Returns what LMLM has learned about the agent identified by the X-LML-Agent-Id header: summary, cluster_axes, cohort top-N, raw liked / disliked arrays, demographics signal-state, screen_name, share state, tier + free-calls-remaining. Read-only; does NOT consume a free credit.",
+        "responses": {
+          "200": {
+            "description": "Own taste profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      }
+    },
+    "/api/v1/me/gifts": {
+      "get": {
+        "summary": "Caller's past gift_mode sessions",
+        "description": "Lists past recommendation calls where gift_mode: true was set, freshest first. Read-only.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gift sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "query": {
+                            "type": "string"
+                          },
+                          "locale": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "recCount": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/refresh-summary": {
+      "post": {
+        "summary": "Force re-derive the caller's taste summary",
+        "description": "Triggers a fresh summary + cluster_axes + embedding + cohort assignment on the CURRENT liked / disliked arrays (no new anchors). Rate limited: 1× per minute, 10× per day per agent. Consumes one call credit (same as a recommend call).",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "locale": {
+                    "type": "string",
+                    "default": "en"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Refresh succeeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "no_profile — pass liked_items first"
+          },
+          "429": {
+            "description": "too_soon (1×/min) or daily_cap (10×/day)"
+          },
+          "502": {
+            "description": "derive_failed — upstream LLM error"
+          }
+        }
+      }
+    },
     "/api/v1/skills/versions": {
       "get": {
         "summary": "Canonical skill version stamps",

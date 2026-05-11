@@ -169,6 +169,39 @@ curl -s "$BASE/api/v1/profiles/abc123def4" \
   -H "X-LML-Agent-Id: $AGENT" | jq .
 ```
 
+## Profile introspection ("me" endpoints)
+
+Three endpoints expose what LMLM has learned about the caller —
+useful for hosts that want to surface a "what does Like Me Like
+know about me" view, force-refresh the summary after a long
+session, or recall past gift queries.
+
+All three identify the agent via `X-LML-Agent-Id` (same header as
+every other v1 call). The two read-side endpoints (`me` and
+`me/gifts`) do NOT consume a free credit; `refresh-summary` costs
+one call credit because it triggers an LLM derivation.
+
+```sh
+# What does LMLM know about me right now?
+curl -s "$BASE/api/v1/me" -H "X-LML-Agent-Id: $AGENT" | jq .
+# Returns: { tier, stats, summary, summaryUpdatedAt, clusterAxes,
+#            counts, topCategories, liked[], disliked[], cohort[],
+#            cohortUpdatedAt, signalsKnown, share }
+
+# Past gift_mode sessions, freshest first
+curl -s "$BASE/api/v1/me/gifts?limit=10" -H "X-LML-Agent-Id: $AGENT" | jq .
+
+# Force a fresh summary derive (rate limited: 1×/min, 10×/day)
+curl -s -X POST "$BASE/api/v1/me/refresh-summary" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"locale":"nl"}' | jq .
+```
+
+The same three are exposed as MCP tools: `get_my_profile`,
+`list_my_gifts`, `refresh_my_summary`. Use whichever surface fits
+your host (HTTP for REST clients, MCP for tool-calling agents).
+
 ## Chat (conversational entry point)
 
 `POST /api/v1/chat` is the natural-language doorway. The chat brain
