@@ -13,6 +13,29 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-05-11]
+
+### Added — Wikipedia URLs in recommendations + admin recovery tool
+
+- **`wikipedia_url` on every recommendation.** Server-populated
+  during the existing image-enrichment pass (no extra HTTP calls).
+  Locale-aware: Dutch users searching for Dutch titles get
+  `nl.wikipedia.org` links; English fallback when the localised
+  article doesn't exist. Field is absent when lookup fails entirely
+  (rare — most LMLM-suitable items have a Wikipedia article).
+  Host LLMs can optionally surface as a clickable reference; both
+  SKILL.md files gain a "Wikipedia URLs in recommendations"
+  section.
+- **`POST /api/admin/user-undo-likes`** — surgical rollback of the
+  N most-recently-added liked / disliked entries on a user's
+  profile, with summary + cluster_axes + cohort re-derive. Built
+  for profile-pollution recovery: when a host LLM forgot to set
+  `gift_mode: true` on a "for someone else" turn, the recipient's
+  anchors get into the user's main profile and pivot their
+  cluster_axes (the 2026-05-10.2 gift heuristic prevents this
+  prospectively; this endpoint cleans up sessions where it
+  already happened). `?dropLikes=N&dropDislikes=M`.
+
 ## [2026-05-10.2]
 
 ### Added — host-side attribution + agent-side observability

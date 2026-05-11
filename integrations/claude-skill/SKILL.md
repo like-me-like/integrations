@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-05-10.2"
+lml_skill_version: "2026-05-11"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -170,7 +170,7 @@ calibration tells you what to do. Don't expose
 ## Keeping this skill up to date
 
 Your local copy carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-10.2`). Check the canonical version via:
+(currently `2026-05-11`). Check the canonical version via:
 
 ```sh
 curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
@@ -181,6 +181,16 @@ When the server reports a newer date, re-fetch from
 skills. ISO dates compare lexically. See
 [`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
 for the full check script.
+
+## Wikipedia URLs in recommendations
+
+Each recommendation may carry a `wikipedia_url` field — a full
+link to the Wikipedia page, locale-aware where available (Dutch
+users get `nl.wikipedia.org`, English fallback when localised
+article is missing). Absent when lookup failed.
+
+Optional to surface. Don't fabricate URLs when the field is
+absent.
 
 ## Reply style
 

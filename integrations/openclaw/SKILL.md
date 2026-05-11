@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-05-10.2"
+lml_skill_version: "2026-05-11"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -199,7 +199,7 @@ feedback for you.
 ## Keeping this skill up to date
 
 Your `SKILL.md` carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-10.2`). The canonical version lives in the
+(currently `2026-05-11`). The canonical version lives in the
 public `like-me-like/integrations` repo; check it via:
 
 ```sh
@@ -212,6 +212,26 @@ OpenClaw with `/restart`. ISO dates compare lexically — a string
 compare is enough. See
 [`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
 for the full check script.
+
+## Wikipedia URLs in recommendations
+
+Each recommendation in the response may carry a `wikipedia_url`
+field — a full link to the Wikipedia page for that item, in the
+user's locale where available (Dutch users searching for Dutch
+titles get `nl.wikipedia.org` links; English fallback when the
+localised article doesn't exist). The field is absent when the
+Wikipedia lookup failed (e.g. brand-new shop items without
+articles).
+
+Optional to surface to the end-user. Good uses:
+
+- "Here's *Civil War* — [Wikipedia](https://en.wikipedia.org/wiki/Civil_War_(2024_film)) if you want to read more first."
+- Quick disambiguation when the user pushes back ("which Dune?"
+  → drop the wiki_url for the version LML resolved against).
+
+Don't fabricate URLs when the field is absent. If the user asks
+for a link and we didn't return one, say so honestly rather than
+guessing.
 
 ## Multi-tenant note
 
