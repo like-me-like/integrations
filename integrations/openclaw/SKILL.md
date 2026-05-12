@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-05-11.1"
+lml_skill_version: "2026-05-12"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -199,7 +199,7 @@ feedback for you.
 ## Keeping this skill up to date
 
 Your `SKILL.md` carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-11.1`). The canonical version lives in the
+(currently `2026-05-12`). The canonical version lives in the
 public `like-me-like/integrations` repo; check it via:
 
 ```sh
@@ -289,6 +289,97 @@ Optional to surface to the end-user. Good uses:
 Don't fabricate URLs when the field is absent. If the user asks
 for a link and we didn't return one, say so honestly rather than
 guessing.
+
+## Cheap starting points: `get_popular` and `recommend_more`
+
+Two tools let you pull picks without paying for a full
+recommendation generation. Reach for them when they fit — they're
+much cheaper (and faster) than `recommend_cross` / `recommend_scoped`.
+
+**`get_popular`** — server-cached "what's popular right now" feed,
+scoped to the user's locale + categories. Same picks the Like Me
+Like homepage shows. Reach for this when:
+
+- The user asks for a starting point with NO anchor — "what's
+  trending?", "give me a good film for tonight", "wat is populair?",
+  "what should I check out first?".
+- You want a vibe-based opener you can frame in one sentence rather
+  than firing a recommend.
+
+Does NOT consume a credit (cache-only). Personalises to the user's
+cohort if they have learned signal; falls back to themed or generic
+baseline for cold-start users.
+
+```json
+{ "locale": "nl", "categories": ["movie", "book"] }
+```
+
+**`recommend_more`** — single-slot top-up. Use when picks are
+already on screen and the user asks to swap ONE out: "give me a
+different book for that slot", "another option in films, not that
+one". Pass:
+
+- `item` — the same enriched SOURCE line the original recommend
+  call worked from (NOT the user's raw query).
+- `originalLang` — the 2/3-letter ISO code from the original
+  response (or `und` for inputs without a single cultural origin).
+- `category` + `variant` — the slot you're replacing.
+- `exclude` — titles already seen in this slot (max 32).
+
+Consumes one credit (it fires one LLM call). Cheaper than
+re-running `recommend_cross` because it only renders one pick.
+
+When in doubt between `recommend_more` and `recommend_scoped`: use
+`recommend_more` if the user is asking for a swap in a slot that's
+already on screen; `recommend_scoped` if you want a fresh focused
+pick from scratch.
+
+## Account-management tools
+
+Five tools let you manage the user's Like Me Like shadow profile
+end-to-end without going through the website. None consume a
+credit. Use them when the user's intent is to manage their data,
+not to discover items.
+
+- **`delete_my_account`** — wipe the user's account end-to-end
+  (taste profile, ratings log, training events, gift sessions,
+  reason feedback, backups — all CASCADEd). Use when the user
+  asks "forget me", "delete my data", "wipe my profile".
+  Idempotent: a second call is a no-op (the auth layer
+  auto-recreates an empty shell which the call clears again).
+
+- **`set_training_consent`** — flip the user's training-data
+  consent. `granted` = corpus collection on; `denied` = off (calls
+  still run, data isn't fed downstream); `unknown` = default
+  (treated as denied but kept distinct). Use when the user asks
+  whether their data is being used or says they want to opt
+  in/out.
+
+- **`set_share_settings`** — patch the user's public profile at
+  `/profile/{slug}` on the website. `screenName` sets the display
+  name (max 40 chars; pass null to clear). `enabled` toggles
+  whether the public profile is accessible. Use when the user
+  says "set my name to X", "show my profile publicly", or "hide
+  my profile".
+
+- **`log_rating`** — append up/down rating events to the training
+  corpus. Use when the user reacts to picks you've shown:
+  "I loved that book", "the second film was a miss". Map each
+  reaction to a `RatingLogEntry` with `signal: "up" | "down"`,
+  `category`, `recTitle`, and a stable `ratingId` (idempotency
+  key). Max 100 entries per call. Distinct from `unlike_items` —
+  rating-log is signal capture, `unlike_items` is anchor removal.
+
+- **`submit_reason_feedback`** — record the user's reaction to
+  the LLM "why this fits" line, separately from the pick itself.
+  Use when the user says "the reasoning was off" or "good
+  reasoning, but the pick wasn't for me". Pass `itemId`,
+  `reasonText` (snapshot of the original reason), `feedback`
+  (free-text reaction). Upsert: re-posting the same `itemId`
+  overwrites.
+
+These tools are reactive — call them when the user signals intent.
+Don't volunteer them.
 
 ## Multi-tenant note
 

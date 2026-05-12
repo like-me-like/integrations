@@ -382,6 +382,208 @@
         }
       }
     },
+    "/api/v1/recommend/more": {
+      "post": {
+        "summary": "Single-slot recommendation top-up",
+        "description": "Fetch ONE additional recommendation for a specific (category, variant) slot without re-running the whole recommend call. Use to swap a single pick out of an existing carousel without paying for a new batch. Pass the SOURCE field from the original recommend response back as `item` so the prompt has the same enriched context, and include any titles already seen for this slot in `exclude` so the model doesn't return a duplicate. Same optional personalisation fields as /api/v1/recommend. Consumes one call credit (one LLM call). Returns a JSON object { recommendation } on success or { error } on failure.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "item",
+                  "originalLang",
+                  "category",
+                  "variant"
+                ],
+                "properties": {
+                  "item": {
+                    "type": "string",
+                    "description": "Enriched source item title — SAME text the original recommend call worked from (e.g. \"De Gruffalo (1999 British children's book, Julia Donaldson)\"). Pass back the SOURCE field from the earlier response, not the raw user query."
+                  },
+                  "locale": {
+                    "type": "string",
+                    "default": "en"
+                  },
+                  "originalLang": {
+                    "type": "string",
+                    "description": "2- or 3-letter ISO code for the source item's original cultural context (parsed from the SOURCE line of the original recommend response), OR 'und' for inputs without a single cultural origin (concepts like 'stoicism', 'melancholie')."
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "LMLM category id for the slot — must match an earlier categories[] entry on the original recommend call."
+                  },
+                  "variant": {
+                    "type": "string",
+                    "enum": [
+                      "best",
+                      "recent",
+                      "wild"
+                    ]
+                  },
+                  "exclude": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Titles already seen for this slot. Max 32 entries; entries capped at 200 chars.",
+                    "maxItems": 32
+                  },
+                  "liked_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat.",
+                    "items": {
+                      "type": "object"
+                    },
+                    "maxItems": 20
+                  },
+                  "disliked_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat.",
+                    "items": {
+                      "type": "object"
+                    },
+                    "maxItems": 20
+                  },
+                  "unlike_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat.",
+                    "items": {},
+                    "maxItems": 20
+                  },
+                  "undislike_items": {
+                    "type": "array",
+                    "description": "See /api/v1/chat.",
+                    "items": {},
+                    "maxItems": 20
+                  },
+                  "first_touch": {
+                    "type": "object",
+                    "description": "See /api/v1/chat."
+                  },
+                  "user_demographics": {
+                    "type": "object",
+                    "description": "See /api/v1/chat."
+                  },
+                  "gift_mode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "See /api/v1/chat."
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "description": "See /api/v1/chat."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One recommendation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recommendation": {
+                      "$ref": "#/components/schemas/Recommendation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          },
+          "502": {
+            "description": "Provider call failed"
+          }
+        }
+      }
+    },
+    "/api/v1/popular": {
+      "post": {
+        "summary": "Cached \"what's popular right now\" feed",
+        "description": "Server-cached popular picks per (locale, categories), layered on the caller's cohort signature. Same feed the LMLM website's homepage shows. Useful as a cheap starting point when you want to surface recommendations without firing a recommend call (no LLM cost, no credit consumed). Background warming may fire on the operator's side to fill empty per-cohort cache rows. Read-only; does NOT consume a free credit.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "locale": {
+                    "type": "string",
+                    "default": "en"
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "LMLM category ids. Defaults to a curated free-tier set when omitted. Unknown ids are dropped silently."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Popular feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "sourceCategory": {
+                          "type": "string"
+                        },
+                        "recommendations": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Recommendation"
+                          }
+                        }
+                      }
+                    },
+                    "cached": {
+                      "type": "boolean",
+                      "description": "True when every requested category had a cache hit; false when one or more rails are missing because the warm pass hasn't filled them yet."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing X-LML-Agent-Id"
+          },
+          "502": {
+            "description": "Popular fetch failed"
+          }
+        }
+      }
+    },
     "/api/v1/recommend/scoped": {
       "post": {
         "summary": "Single-category focused recommendation",
@@ -650,6 +852,301 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Wipe the caller's account",
+        "description": "Deletes the user row, which CASCADEs to every per-user table (taste profile, ratings log, training events, LLM call log, reason feedback, gift sessions, backups). Per-cohort cached popular_picks rows age out separately. Any model-provider scoped keys tied to the account are best-effort revoked. Idempotent: always returns 200 ok=true. Each call wipes whatever state currently exists; a second call right after the first is a no-op because the auth layer auto-recreates an empty shadow row, which the delete then clears. Does NOT consume a free credit.",
+        "responses": {
+          "200": {
+            "description": "Account deleted (or no-op on a fresh empty shell)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          },
+          "500": {
+            "description": "Delete failed (transient DB error)"
+          }
+        }
+      }
+    },
+    "/api/v1/me/consent": {
+      "post": {
+        "summary": "Set the caller's training-data consent",
+        "description": "Flip the training_consent flag. 'granted' = corpus collection on; 'denied' = corpus collection off (calls still run, data isn't fed downstream); 'unknown' = default state, kept distinct so hosts can prompt for an explicit choice later. Does NOT consume a free credit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "consent"
+                ],
+                "properties": {
+                  "consent": {
+                    "type": "string",
+                    "enum": [
+                      "granted",
+                      "denied",
+                      "unknown"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consent updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      }
+    },
+    "/api/v1/me/share": {
+      "post": {
+        "summary": "Patch the caller's public-profile share settings",
+        "description": "Update screen_name (display name on the public profile at /profile/{slug}) and/or the enabled flag (whether that profile is accessible at all). Lazy-mints the slug if absent. Pass only the fields you want to change. Pass screenName: null to clear. Does NOT consume a free credit.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "screenName": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "nullable": true
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated share settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "screenName": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/v1/me/rating-log": {
+      "post": {
+        "summary": "Append rating events to the caller's training corpus",
+        "description": "Record up/down reactions on picks already shown to the end-user. Same shape as the website's thumb log so the downstream pipeline treats agent + website data as one corpus. ratingId is the idempotency key — duplicates are no-ops. Max 100 entries per call. Does NOT consume a free credit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "entries"
+                ],
+                "properties": {
+                  "entries": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "ratingId",
+                        "ts",
+                        "signal",
+                        "category",
+                        "recTitle"
+                      ],
+                      "properties": {
+                        "ratingId": {
+                          "type": "string"
+                        },
+                        "ts": {
+                          "type": "number",
+                          "description": "Unix timestamp in ms."
+                        },
+                        "signal": {
+                          "type": "string",
+                          "enum": [
+                            "up",
+                            "down"
+                          ]
+                        },
+                        "category": {
+                          "type": "string"
+                        },
+                        "recTitle": {
+                          "type": "string"
+                        },
+                        "variant": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "sourceInput": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "enrichedItem": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "sourceCategory": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "originalLang": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "locale": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "candidateTitles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Entries appended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "inserted": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      }
+    },
+    "/api/v1/me/reason-feedback": {
+      "post": {
+        "summary": "Record the end-user's reaction to a pick's reason line",
+        "description": "Per-(user, item) free-text feedback on the LLM 'why this fits' line. Distinct from rating-log (which captures up/down on the pick). The (reasonText, feedback) pair lets the training pipeline distinguish 'good rec, bad reasoning' from 'bad rec full stop'. NEVER fed back into the live prompt. Upsert: re-posting the same itemId overwrites the prior row. Does NOT consume a free credit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "itemId",
+                  "reasonText",
+                  "feedback"
+                ],
+                "properties": {
+                  "itemId": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "reasonText": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "feedback": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feedback stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
           },
           "401": {
             "description": "Missing or invalid X-LML-Agent-Id"
@@ -1107,7 +1604,7 @@
     "/api/v1/mcp": {
       "post": {
         "summary": "MCP (Model Context Protocol) Streamable-HTTP transport",
-        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile) plus a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
+        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic recommend / catalog tools (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile), 3 me-introspection tools (get_my_profile, list_my_gifts, refresh_my_summary), 2 feed tools (recommend_more, get_popular), 5 account-management tools (delete_my_account, set_training_consent, set_share_settings, log_rating, submit_reason_feedback), and a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
         "requestBody": {
           "required": true,
           "content": {

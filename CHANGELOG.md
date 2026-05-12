@@ -13,6 +13,50 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-05-12]
+
+### Added — feed + account-management surfaces
+
+**Feed tools.** Two new low-cost / no-cost ways to pull picks
+without a full recommend call:
+
+- `POST /api/v1/recommend/more` + MCP `recommend_more` — single-slot
+  top-up. Swap ONE pick out of an already-shown carousel without
+  re-running the whole recommend. Same personalisation inputs as
+  `recommend_cross`. Consumes one call credit.
+- `POST /api/v1/popular` + MCP `get_popular` — server-cached
+  "what's popular right now" feed. Locale + categories scoped, with
+  a per-cohort layer over a shared baseline. Cheap starting point
+  when the user hasn't given an anchor. Does NOT consume a credit
+  (cache-only).
+
+The `ask` tool's chat brain now uses both tools natively:
+"what's popular?" / "wat is populair?" pulls from the cache
+(~200 ms tool, no LLM recommend cost) instead of firing
+`recommend_cross`; "give me a different book for that slot" reaches
+for `recommend_more` with the seen-titles list.
+
+**Account-management tools.** Five new identifyAgent-gated
+endpoints (none consume a credit) so a host LLM can manage the
+end-user's Like Me Like shadow profile end-to-end:
+
+- `DELETE /api/v1/me` + MCP `delete_my_account` — wipe account
+  end-to-end (CASCADE on every per-user table). Idempotent: each
+  call wipes whatever state currently exists.
+- `POST /api/v1/me/consent` + MCP `set_training_consent` — toggle
+  training-data consent (`granted` / `denied` / `unknown`).
+- `POST /api/v1/me/share` + MCP `set_share_settings` — patch
+  `screen_name` + `enabled` on the public profile at
+  `/profile/{slug}` on the website. Lazy-mints the slug.
+- `POST /api/v1/me/rating-log` + MCP `log_rating` — append
+  up/down rating events to the training corpus. Same shape as
+  the website thumb log; idempotent on `ratingId`; max 100 per
+  call.
+- `POST /api/v1/me/reason-feedback` + MCP `submit_reason_feedback`
+  — per-(user, item) free-text feedback on the LLM "why this fits"
+  reason line. Distinct from `log_rating`; captures reaction to
+  REASONING, not the pick itself. Upsert semantics.
+
 ## [2026-05-11.1]
 
 ### Added — host LLMs can undo anchors
