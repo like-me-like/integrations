@@ -465,3 +465,18 @@ mention those naturally rather than dumping the JSON.
 If a tool returns an error (truncation, provider failure, cell-budget
 violation), tell the user honestly and suggest narrowing the request.
 Do not invent picks.
+
+## Keeping this skill up to date
+
+Your local copy carries `lml_skill_version:` in its YAML frontmatter
+(currently `2026-05-14.2`). Check the canonical version via:
+
+```sh
+curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
+```
+
+When the server reports a newer date, re-fetch from
+`lml_skill_canonical_url` (also in the frontmatter) and reload your
+skills. ISO dates compare lexically. See
+[`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
+for the full check script.

@@ -480,3 +480,20 @@ or all your users share the same free tier and shadow profile.
 That requires a thin MCP proxy layer that injects a per-call
 header — see [the multi-tenant MCP routing design](https://github.com/like-me-like/likemelike#) (template coming when the first
 multi-tenant integration ships).
+
+## Keeping this skill up to date
+
+Your `SKILL.md` carries `lml_skill_version:` in its YAML frontmatter
+(currently `2026-05-14.2`). The canonical version lives in the
+public `like-me-like/integrations` repo; check it via:
+
+```sh
+curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
+```
+
+When the server reports a newer date than your local copy, re-fetch
+from `lml_skill_canonical_url` (also in the frontmatter) and restart
+OpenClaw with `/restart`. ISO dates compare lexically — a string
+compare is enough. See
+[`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
+for the full check script.
