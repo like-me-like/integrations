@@ -202,6 +202,43 @@ The same three are exposed as MCP tools: `get_my_profile`,
 `list_my_gifts`, `refresh_my_summary`. Use whichever surface fits
 your host (HTTP for REST clients, MCP for tool-calling agents).
 
+## Saved items + recall lists
+
+Two list-style endpoints / tools surface picks the user has acted
+on. They're distinct from `liked_items[]` / `disliked_items[]` on
+the profile — those are taste anchors (item the user has
+experienced and likes); `save_item` is a bookmark for items they
+want to come back to (interested but not yet experienced).
+
+```sh
+# Bookmark list (newest first)
+curl -s "$BASE/api/v1/me/saved" -H "X-LML-Agent-Id: $AGENT" | jq .
+# Returns: { items: [{title, category, reasonSnapshot, savedAt, ...}] }
+
+# Add to / remove from bookmarks
+curl -s -X POST "$BASE/api/v1/me/saved" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Past Lives","category":"movie","reason":"saw the trailer, want to watch"}'
+
+curl -s -X DELETE "$BASE/api/v1/me/saved" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Past Lives","category":"movie"}'
+```
+
+MCP equivalents: `save_item`, `list_saved_items`, `remove_saved_item`.
+A new tool `list_my_likes` returns the user's own taste anchors as
+recommendation cards (mode `recall`) — used by the chat brain when
+the user asks "wat heb ik geliked?" / "what have I liked?".
+
+When the brain calls any of the list/search/disambiguate tools, the
+matching cards land in the response's `recommendations[]` array
+with `recommendations_mode` set to `recall` (own list) or
+`disambiguate` (option set). Hosts that render cards should honour
+the mode to skip the already-rated filter on those — see the
+Chat section below for the full mode contract.
+
 ## Chat (conversational entry point)
 
 `POST /api/v1/chat` is the natural-language doorway. The chat brain
@@ -235,10 +272,41 @@ Response shape:
   "conversation_id": "uuid-or-null",
   "reply": "Building on Interstellar, 'Contact' by Carl Sagan is a strong pick...",
   "recommendations": [ { "type": "book", "title": "Contact", ... } ],
+  "recommendations_mode": "discovery",
   "tool_calls": [ { "name": "recommend_scoped", "args": {...}, "ok": true } ],
   "latency_ms": 12450
 }
 ```
+
+Each entry in `recommendations[]` carries the structured fields hosts
+need to render cards: `title`, `type` (category), `variant`,
+`reason`, `image_url`, `description`, `wikipedia_url` (locale-aware
+link to the article), and `wikipedia_pages` (`{lang_code:
+page_title}` map when langlinks resolved). `image_url` flows from the
+items table when the recommendation matches a curated row; otherwise
+from a Wikipedia / OpenGraph lookup during enrichment.
+
+`recommendations_mode` tells the host how to render the array:
+
+- **`discovery`** (default) — fresh picks from `recommend_*`,
+  `get_popular`, or `search_items`. Host applies its already-rated
+  filter so items the user has liked / disliked / saved before
+  don't recycle. Action buttons start neutral.
+- **`recall`** — the user's own list. Returned by
+  `list_saved_items` (bookmarks) and `list_my_likes` (anchors). Host
+  SKIPS the already-rated filter — these ARE the user's anchors;
+  filtering them would empty the list. Action buttons should
+  reflect existing state where possible.
+- **`disambiguate`** — option set for an ambiguous name the user
+  typed (`disambiguate(query)` resolves to multiple distinct works
+  sharing the title). Host SKIPS the filter and treats a card-click
+  as the user's choice for what they meant. The brain typically
+  follows up with a `recommend_*` keyed on the chosen id.
+
+The same field ships on the SSE `done` event (streaming mode), on
+the standard JSON response above, and on the MCP `ask` tool's
+`structuredContent`. Host UIs that render cards should honour the
+mode contract so recall queries land complete.
 
 ### Multi-turn, stateful
 

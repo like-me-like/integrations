@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-05-14.2"
+lml_skill_version: "2026-05-14.5"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -343,6 +343,53 @@ Also useful: the `RECENT QUERIES` block lists the user's last
 turn ("die film waar je het laatst over had") or when you want
 continuity across conversations.
 
+## Cards over text — let the host render lists visually
+
+The response carries a structured `recommendations` array PLUS
+a `recommendations_mode` hint ("discovery" | "recall" |
+"disambiguate"). Host UIs (the LMLM website's /chat, OpenClaw,
+Claude.ai integrations, etc.) render this as interactive cards:
+image / title / reason / thumb-up / thumb-down / save buttons.
+Each card carries enough fields (`image_url`, `wikipedia_url`,
+`wikipedia_pages` for locale-aware Wikipedia links, `reason`,
+`type`, `variant`) that any host can build cards with the
+same affordances as the canonical /chat surface.
+
+Behavioural contract for the HOST LLM:
+
+- When you call a tool that surfaces items (`list_saved_items`,
+  `list_my_likes`, `search_items`, `disambiguate`, any
+  `recommend_*`, `get_popular`), the items ALSO populate the
+  cards the user sees. Do NOT enumerate the titles in your reply
+  text — the cards are doing that visually. Frame the list
+  ("hier zijn je bewaarde films", "this is what you've liked so
+  far"), then let the cards speak.
+- Bad: "Je hebt drie films bewaard: After Yang, Primer, The
+  Creator. After Yang is samen kijken, Primer voor tech/AI, The
+  Creator nog te zien."
+- Good: "Drie films op je lijst — de cards laten zien wat je waar
+  aan toevoegde."
+
+`recommendations_mode` tells the host how to render:
+
+- **discovery** (default) — fresh picks. Host should apply the
+  already-rated filter so items the user has liked / disliked /
+  saved before don't recycle. Action buttons start in their
+  neutral state; user can click to register the action.
+- **recall** — the user's own list (saves / likes). Host should
+  SKIP the already-rated filter (these ARE the user's anchors —
+  filtering them would empty the list). Action buttons should
+  reflect existing state where possible (saved items show the
+  bookmark filled, liked items show thumb-up filled).
+- **disambiguate** — option-set for a name the user typed. Host
+  should SKIP the filter (they're picking, not discovering) and
+  treat a card-click as the user's choice for what they meant.
+
+The host MAY render text instead of cards when its surface can't
+support them (audio-only channel, voice assistant). In that case
+the host falls back to enumerating the picks in the reply text.
+Default behaviour assumes cards work — when in doubt, render cards.
+
 ## Account-management tools
 
 Five tools let you manage the user's Like Me Like shadow profile
@@ -466,10 +513,11 @@ If a tool returns an error (truncation, provider failure, cell-budget
 violation), tell the user honestly and suggest narrowing the request.
 Do not invent picks.
 
+
 ## Keeping this skill up to date
 
 Your local copy carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-14.2`). Check the canonical version via:
+(currently `2026-05-14.5`). Check the canonical version via:
 
 ```sh
 curl -s https://www.likemelike.com/api/v1/skills/versions | jq .

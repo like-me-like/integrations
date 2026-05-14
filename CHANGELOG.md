@@ -13,6 +13,84 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-05-14.5]
+
+### Added — `recommendations_mode` parity on MCP `ask`
+
+The render-mode hint (`"discovery"` / `"recall"` / `"disambiguate"`)
+that the chat surface uses to drive its already-rated filter now
+also ships in MCP `ask`'s `structuredContent`. Was already on
+`/api/v1/chat`'s JSON + SSE done event; this closes the parity
+gap so MCP hosts (OpenClaw, Claude.ai-style integrations) can
+honour the same contract:
+
+- **`discovery`** (default) — fresh picks; host applies its
+  already-rated filter so items the user has engaged with don't
+  recycle.
+- **`recall`** — the user's own list from `list_saved_items` or
+  `list_my_likes`; host skips the filter.
+- **`disambiguate`** — option set from `disambiguate(query)`;
+  host skips the filter.
+
+### Changed — SKILL "Cards over text" expanded
+
+The SKILL section that tells host LLMs to frame lists rather
+than enumerate titles now includes the full per-mode rendering
+contract (discovery / recall / disambiguate), plus the fields
+hosts need to build matching cards (`image_url`, `wikipedia_url`,
+`wikipedia_pages` for locale-aware Wikipedia links).
+
+### Changed — `confidence_source` on UI-driven likes
+
+Direct thumb-up writes via `POST /api/profile/like` now stamp
+`confidence: 1.0` and `confidence_source: "explicit_like"` on
+the resulting profile entry, matching the shape the chat brain
+writes via tool-driven `liked_items[]`. Wire change — UI clicks
+and brain-extracted likes now produce identical profile rows.
+
+## [2026-05-14.4]
+
+### Added — `search_items` and `disambiguate` surface as cards
+
+Same upgrade as the list tools in `2026-05-14.3`: the items
+these tools return now also populate the response's
+`recommendations[]` so host UIs can render them as interactive
+cards. `search_items` uses mode `discovery` (already-rated
+filter applies); `disambiguate` uses mode `disambiguate` (filter
+skipped — option set, not discovery).
+
+## [2026-05-14.3]
+
+### Added — new tool `list_my_likes`
+
+Surfaces the user's own taste anchors (liked + optionally
+disliked items) as recommendation cards. Use when the end-user
+asks "what have I liked?" / "wat had ik geliked?" — the brain
+calls this, the cards render the items visually, and the brain's
+text reply frames the list rather than enumerating titles.
+
+### Changed — `list_saved_items` surfaces as cards
+
+The existing tool now also pushes its items into the response's
+`recommendations[]` with mode `recall`. Was previously only
+returning a structured `items` list in the tool result. Hosts
+that render cards now get them for "what did I save?" queries
+without changing the call shape.
+
+### Added — `recommendations_mode` field
+
+Render hint on `/api/v1/chat`'s JSON response and SSE `done`
+event. See `2026-05-14.5` above for the full mode contract (the
+field landed in `.3` but MCP parity arrived in `.5`).
+
+### Added — SKILL "Cards over text" section
+
+New SKILL section instructing host LLMs to frame lists ("hier
+zijn je bewaarde films") rather than enumerate titles ("After
+Yang, Primer, The Creator") when the host renders cards. The
+host can override with a future `display_hints.cards: false` for
+audio-only surfaces.
+
 ## [2026-05-14.2]
 
 ### Changed — locale-neutral SKILL examples
