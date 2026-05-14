@@ -1101,6 +1101,167 @@
         }
       }
     },
+    "/api/v1/me/saved": {
+      "get": {
+        "summary": "List the caller's saved (bookmarked) items",
+        "description": "Returns the user's save-for-later list, freshest first. Distinct from liked_items (which imply personal experience + preference). Read-only; does NOT consume a free credit.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "reasonSnapshot": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "sourceQuery": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "sourceConversationId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "savedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      },
+      "post": {
+        "summary": "Save (bookmark) an item for later",
+        "description": "Adds a title to the user's save-for-later list. Use this when the user signals intent to revisit a recommendation they haven't experienced yet ('save this', 'bewaar 'm voor me', 'on my list'). Distinct from liked_items — saves do NOT touch the cohort signal. Idempotent on (title, category): re-saving updates the reason but preserves the original saved_at. Does NOT consume a free credit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "source_query": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove an item from the saved list",
+        "description": "Remove a specific title from the user's saved-items list. Use when the user has now experienced the item (and you're about to add it to liked_items / disliked_items) or asks to un-save. Title-matching is case-insensitive on (category, title) — same key as POST.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Removed (or no-op if absent)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      }
+    },
     "/api/v1/me/reason-feedback": {
       "post": {
         "summary": "Record the end-user's reaction to a pick's reason line",
@@ -1604,7 +1765,7 @@
     "/api/v1/mcp": {
       "post": {
         "summary": "MCP (Model Context Protocol) Streamable-HTTP transport",
-        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic recommend / catalog tools (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile), 3 me-introspection tools (get_my_profile, list_my_gifts, refresh_my_summary), 2 feed tools (recommend_more, get_popular), 5 account-management tools (delete_my_account, set_training_consent, set_share_settings, log_rating, submit_reason_feedback), and a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
+        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic recommend / catalog tools (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile), 3 me-introspection tools (get_my_profile, list_my_gifts, refresh_my_summary), 2 feed tools (recommend_more, get_popular), 5 account-management tools (delete_my_account, set_training_consent, set_share_settings, log_rating, submit_reason_feedback), 3 save-for-later tools (save_item, list_saved_items, remove_saved_item), and a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
         "requestBody": {
           "required": true,
           "content": {

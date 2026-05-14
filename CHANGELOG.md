@@ -13,6 +13,85 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-05-14.2]
+
+### Changed — locale-neutral SKILL examples
+
+All concrete title references in the SKILL playbook (Stoner, Past
+Lives, Friends, Lost in Translation, Sicilië, Paterson, Sea of
+Voices, etc.) have been replaced with bracketed placeholders
+(`[item]`, `[place]`, `[category]`, `[strong-positive-past-tense]`,
+etc.). Trigger patterns now read as language-neutral structural
+rules rather than NL/EN-skewed sample phrases.
+
+**Why:** the previous sample phrases biased pattern-matching toward
+Dutch and English. A host LLM whose end-user writes in French,
+German, Japanese, etc. still has to apply the same rules but had
+no in-prompt example in their language to ground on. Abstracted
+patterns force rule-application instead of phrase-match — slightly
+less precise but locale-fair.
+
+**Trigger-vocabulary lists stay concrete** — `save` / `bewaar` /
+`bookmark` / `onthoud` / `on my list` / `op m'n lijst` — those ARE
+the multilingual surface forms the brain needs to recognise, not
+content references.
+
+## [2026-05-14.1]
+
+### Changed — confidence-tier calibration
+
+Confidence tier table tightened in the "Save vs Like" section:
+
+- **1.0** is now reserved for declarative explicit claims with
+  clear prior experience and no hedge ("[item] is my favourite
+  [category]", "[item] was [strong-positive-past-tense]", "I love
+  [item]"). Previously documented as "0.85-1.0", which encouraged
+  hosts to score every explicit like at 0.9 — producing a fuzzy
+  taste profile over time.
+- **0.85-0.95** for explicit claims with softening hedges ("I
+  think", "denk dat", "best wel", "kind of").
+- **0.5-0.7** for casual mentions, prior experience implied.
+- **0.2-0.4** for ambiguous acks on fresh suggestions (no
+  prior-experience claim).
+
+### Changed — save vs soft-like distinction
+
+A positive ack on a fresh suggestion ("sounds good", "klinkt
+aardig", "[item] is leuk" where [item] was just suggested) is now
+documented as a **soft like** (`liked_item` with `confidence: 0.3`
+and `confidence_source: "ambiguous_ack"`), NOT a `save_item`.
+
+Previous SKILL conflated these: positive acks routed to save,
+which collapsed two distinct signals (bookmark intent vs soft
+taste signal). The taste graph quietly missed soft signals.
+
+`save_item` is now reserved exclusively for explicit bookmark
+verbs (`save` / `bewaar` / `bookmark` / `onthoud` / `ga ik
+kijken`). Both actions are independent and can fire together
+when the user combines an ack with a save verb ("sounds good,
+save it").
+
+## [2026-05-14]
+
+### Added — confidence scores on liked / disliked items
+
+`liked_items[]` and `disliked_items[]` now accept an optional
+`confidence` field (0-1) plus a `confidence_source` label
+(`"explicit_like"` / `"casual_mention"` / `"ambiguous_ack"`).
+Cohort matching weighs anchors by confidence — low-confidence
+items land on the profile (so the brain has continuity) but
+don't dominate cohort retrieval. Missing `confidence` defaults
+to 1.0 for backwards compat.
+
+## [2026-05-13]
+
+### Added — save-for-later distinction (save_item / list_saved_items / remove_saved_item)
+
+New tool family for items the user wants to come back to but has
+NOT yet experienced. Cleanly separates "interested" (save) from
+"liked" (experienced + positive). Save does NOT touch the cohort
+signal — softer "interested" tier.
+
 ## [2026-05-12]
 
 ### Added — feed + account-management surfaces

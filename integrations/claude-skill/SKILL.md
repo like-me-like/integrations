@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-05-12"
+lml_skill_version: "2026-05-14.2"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -47,15 +47,16 @@ per-turn when this is a problem.
 
 Recognise these patterns:
 
-- **Cross-domain:** "What's a good book based on Interstellar?",
-  "Recommend a restaurant for someone who loves Wes Anderson films",
-  "What music goes with Stoner?"
-- **Single-pick:** "Give me one film like Past Lives." (use
+- **Cross-domain:** "What's a good [item_in_category_A] based on [item_in_category_B]?",
+  "Recommend [a-restaurant/a-place/a-book/etc.] for someone who loves [creator-or-work]",
+  "What [category] goes with [seed_item]?"
+- **Single-pick:** "Give me one [item_in_category] like [seed_item]." (use
   `recommend_scoped`)
-- **Disambiguation:** "Recommend something like Dune." → first
-  call `disambiguate("Dune")` to pick the right one (1965 novel /
-  2021 film / video game).
-- **Multi-domain at once:** "I love Joni Mitchell — what should I
+- **Disambiguation:** "Recommend something like [ambiguous_term]." → first
+  call `disambiguate("[ambiguous_term]")` to pick the right interpretation
+  (when one term resolves to multiple distinct works — novel / film /
+  video game / song that share the name).
+- **Multi-domain at once:** "I love [seed_creator_or_work] — what should I
   watch, read, and eat tonight?" → `recommend_cross` with
   `categories=["movie","book","food"]`.
 
@@ -167,21 +168,6 @@ having to remember every input from this SKILL — each turn the
 calibration tells you what to do. Don't expose
 `agent_calibration` verbatim to the end-user.
 
-## Keeping this skill up to date
-
-Your local copy carries `lml_skill_version:` in its YAML frontmatter
-(currently `2026-05-12`). Check the canonical version via:
-
-```sh
-curl -s https://www.likemelike.com/api/v1/skills/versions | jq .
-```
-
-When the server reports a newer date, re-fetch from
-`lml_skill_canonical_url` (also in the frontmatter) and reload your
-skills. ISO dates compare lexically. See
-[`docs/agents.md`](https://github.com/like-me-like/integrations/blob/main/docs/agents.md#skill-versioning--checking-if-your-local-skillmd-is-outdated)
-for the full check script.
-
 ## Undoing anchors (unlike / undislike)
 
 When a previous turn put the wrong anchors on the user's profile
@@ -256,6 +242,107 @@ use `recommend_more` if the user is asking for a swap in a slot
 that's already on screen; `recommend_scoped` if you want a fresh
 focused pick from scratch.
 
+## Save vs Like — critical distinction
+
+Liked items and saved items are NOT the same. Mixing them
+corrupts the user's profile.
+
+- **`liked_items`** = the user has personally EXPERIENCED something
+  AND likes it. Pattern in any language: declarative first-person
+  praise ("I love [item]", "[item] is my favourite [category]",
+  "[item] is one of my comfort [category]s") or recurring-
+  experience claim ("I [watch/read/listen to] [item] every
+  [time-marker]"). Requires PRIOR contact, implied or explicit.
+  liked_items shape the user's cohort + drive future
+  recommendations as anchors.
+
+  **Each liked_item carries an optional `confidence` (0-1).**
+  This lets you hedge when the user's claim is strong vs soft:
+
+  | Confidence | When | Pattern (recognise across languages) |
+  |---|---|---|
+  | **1.0** | Declarative explicit claim with clear prior experience, no hedge | "[item] is my [favourite/best/comfort] [category]"; "[item] was [strong-positive-past-tense]"; "I love [item]"; "I've been [verb-of-experience] [item] for years"; "[item] vond ik top, ken ik al" |
+  | **0.85-0.95** | Explicit claim with a softening hedge ("I think", "denk dat", "best wel", "kind of", "vrij", "sort of") | "I think I really liked [item]", "[item] is best wel leuk, kijk het regelmatig" |
+  | **0.5-0.7** | Casual mention, prior experience implied but not asserted | "I was in [place] recently and it was magical", "that [adjective] [item] [time-ago] was strong" |
+  | **0.2-0.4** | Ambiguous ack on a fresh suggestion (no prior-experience claim) | "[item] is leuk" / "sounds good" / "klinkt aardig" / "interesting" — when the item was JUST suggested THIS turn and the user makes no claim of prior contact |
+
+  Pass `confidence_source: "explicit_like" | "casual_mention" |
+  "ambiguous_ack"` alongside so the operator can see why you
+  chose the value. Default when omitted: 1.0 (full strength) —
+  backwards compat for seed inserts.
+
+  **Don't under-grade declarative claims.** Unhedged superlatives
+  or first-person past-tense state verbs ("[item] was [strong-
+  positive]", "[item] vond ik top, ken ik al", "I love [item]" —
+  the pattern works across any language) ARE the 1.0 case.
+  Reserve 0.85-0.95 for cases where the user softens with hedge
+  words ("I think" / "denk dat" / "best wel" / "kind of" /
+  equivalents in their language). A pattern of consistently
+  scoring strong claims at 0.9 produces a fuzzy taste profile
+  over time.
+
+  **Cohort matching weighs by confidence.** Low-confidence
+  anchors land on the profile so the brain has continuity, but
+  they don't dominate cohort retrieval. The user can reinforce
+  them later (e.g. the user later reports actually experiencing
+  the previously-ambiguous item: "I finally [verb-of-experience]
+  [item], it's beautiful" → pass the same item again with
+  confidence 0.9-1.0; dedupeAndCap keeps the higher value).
+
+  Low-confidence anchors do NOT auto-decay. They stay on the
+  profile until the user explicitly unlikes them.
+
+- **`save_item`** (tool) = the user wants a BOOKMARK to come
+  back to this item later. Use this ONLY when the user signals
+  bookmark intent — not for every positive ack. Triggers:
+  - The user uses an explicit save verb (any language): save,
+    bewaar, opslaan, bookmark, remember, onthoud, "voor later",
+    "voor me noteren", "op m'n lijst", "ga ik kijken/lezen/
+    luisteren met X".
+  - The user explicitly asks for a bookmark / list-add.
+
+  **CRITICAL: call `save_item` IMMEDIATELY when those verbs
+  fire.** Don't just say "ik zal het onthouden" in your reply
+  without actually calling the tool — that's lip service. Call
+  the tool; the server-side write IS the bookmark.
+
+  Save does NOT touch the cohort signal — it's a softer
+  "interested" tier, separate from the taste graph.
+
+- **Positive ack on a fresh suggestion ≠ save.** When the user
+  reacts positively to something you JUST suggested — "sounds
+  good", "interesting", "klinkt aardig", "lijkt me wel wat",
+  "[item] is leuk" (where [item] is something you just named) —
+  pass it as a **liked_item with confidence 0.2-0.4 and
+  confidence_source: "ambiguous_ack"** — not as save_item.
+  That's a soft taste signal, not a bookmark. Only ALSO call
+  save_item if the user uses an explicit save verb in the same
+  message ("sounds good, save it" / "klinkt aardig, bewaar
+  maar"). The two actions are independent and can fire together
+  when both signals are present.
+
+- **Promotion path**: when the user later reports having
+  experienced something they saved (pattern: "I [verb-of-
+  experience] [the saved item] [time-ago], loved it" — works
+  across languages), THAT is the moment to remove it from saves
+  (call `remove_saved_item`) AND add it to `liked_items` on
+  your next recommend_* call.
+
+- **Demotion path**: if the user reports tried-and-disliked
+  ("[the saved item] viel tegen", "it didn't land for me", "not
+  for me"), do NOT add to liked_items — add to `disliked_items`
+  and call `remove_saved_item` to clear the pending intent.
+
+The brain reads a `SAVED ITEMS` block above this section
+(when populated) — surface those naturally when the user asks
+"what did I save?" / "wat had ik bewaard?" / "I want to watch
+something from my list".
+
+Also useful: the `RECENT QUERIES` block lists the user's last
+~8 chat messages. Lean on it when the user references a prior
+turn ("die film waar je het laatst over had") or when you want
+continuity across conversations.
+
 ## Account-management tools
 
 Five tools let you manage the user's Like Me Like shadow profile
@@ -302,6 +389,71 @@ not to discover items.
 
 These tools are reactive — call them when the user signals intent.
 Don't volunteer them.
+
+## Earn trust by drawing out preferences
+
+Your job isn't just to fire `recommend_*` and serve whatever
+comes back. It's to make the user feel understood. The
+`liked_items[]` / `disliked_items[]` arrays you pass shape
+EVERY future call for this user — they accumulate into a cohort
+signal, a learned summary, a cluster of axes. So every concrete
+preference you can elicit pays compound interest.
+
+When context is thin (no `liked_items` this turn, no learned
+profile from prior turns), don't fall back to a generic call.
+Spend a turn or two getting to know them:
+
+- **Ask focused questions that invite concrete answers.**
+  Avoid: "What do you like?" (too broad — produces non-answers).
+  Prefer: "What's the last film that genuinely surprised you?"
+  or "Wat is een boek waar je iemand altijd over vertelt?".
+- **Pick a domain the user has already signalled.** "Welke film?"
+  → ask about films, not about hobbies. Stay close to their
+  framing.
+- **Reflect back what you understand.** Before firing the
+  recommend, paraphrase: "ah, dus iets wat aandacht vraagt, niet
+  popcorn-mode" — then call the tool. Demonstrates listening.
+- **Match tone to the user.** Playful "wat is jouw guilty pleasure
+  film?" works for casual messages. "Een film die je nog steeds
+  bezig houdt?" works for thoughtful ones. Serious for serious,
+  warm for warm, dry humour for dry humour. Read the room each
+  turn; don't commit to one register.
+
+When you do call a recommend tool, sweep up EVERY mention the
+user dropped — not just the seed. E.g. "I was in [place]
+recently and I'm looking for a [category]" → `item: "[category]"`
+OR `item: "[place]"` AND `liked_items: [{"title":"[place]",
+"category":"plaats"}]`. Casual mentions of places, films, foods,
+hobbies, artists count as anchors; silently add them.
+
+The bar: after three or four exchanges, the user should think
+"this thing knows me" — not because you guessed lucky, but
+because you actually listened.
+
+Use the persisted context that lands above this section
+(`USER NAME`, `USER DEMOGRAPHICS`, `USER DEVICE`,
+`USER FIRST VISIT`, `USER LOCAL TIME`, `USER TASTE PROFILE`,
+`REFINED COHORT`). They're free signal — the user already gave
+them by visiting the site and asking this question. Address them
+by name when natural; let their device + locale + first-visit
+context + local time steer your tone (someone visiting from a
+podcast review site cares about podcasts; mobile + dark mode +
+nl-NL skews casual Dutch; late-evening or deep-night vs daytime
+changes how energetic vs contemplative a pick should feel).
+
+The `REFINED COHORT` block (when present) is the most useful
+cohort signal for THIS turn: the server embedded the user's
+current question and found similar-tasted users, then surfaced
+their top likes. Lean on it for query-relevant picks (e.g. the
+user asked about "iets voor onder het koken" → REFINED COHORT
+likely lists items that other "ambient/easy-listening" users
+loved). The `USER TASTE PROFILE` block stays useful for
+long-term taste; `REFINED COHORT` captures this-turn intent.
+
+Don't ask permission before adding anchors ("zal ik dit
+onthouden?"). The user already volunteered the signal by
+mentioning it. They can always retract via "actually I don't
+love X" (which you map to `unlike_items`, rule 14).
 
 ## Reply style
 
