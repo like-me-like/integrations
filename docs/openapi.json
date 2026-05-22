@@ -258,7 +258,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "Cell budget: categories.length × variants.length ≤ 5. Each cell yields ~2 picks, so this caps total results at ~10 — safely under the recommendation model's ~25% truncation rate observed above ~10-12 items in one streamed JSON response. Bigger asks → split into parallel calls and merge client-side. See docs/agents.md."
+                    "description": "Cell budget: categories.length × variants.length ≤ 5. Each call returns a batch of 8–12 results total, spread across the cells — fewer cells means a deeper set per category. Result quality is best within this band; for more than one batch, split into parallel calls and merge client-side. See docs/agents.md."
                   },
                   "cultureMode": {
                     "type": "string",
@@ -587,7 +587,7 @@
     "/api/v1/recommend/scoped": {
       "post": {
         "summary": "Single-category focused recommendation",
-        "description": "JSON response with up to num_picks recs in the named category. Powers the 'Interstellar → 1 book' shape. num_picks=1 only in this version (3-pick scoped lands later).",
+        "description": "JSON response with up to num_picks recs in the named category. Powers the 'Interstellar → 1 book' shape. num_picks accepts 1; for more picks in the same category, call repeatedly with each returned title appended to a client-side exclude list.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1765,7 +1765,7 @@
     "/api/v1/mcp": {
       "post": {
         "summary": "MCP (Model Context Protocol) Streamable-HTTP transport",
-        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic recommend / catalog tools (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile), 3 me-introspection tools (get_my_profile, list_my_gifts, refresh_my_summary), 2 feed tools (recommend_more, get_popular), 5 account-management tools (delete_my_account, set_training_consent, set_share_settings, log_rating, submit_reason_feedback), 3 save-for-later tools (save_item, list_saved_items, remove_saved_item), and a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
+        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic recommend / catalog tools (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile), 3 me-introspection tools (get_my_profile, list_my_gifts, refresh_my_summary), 2 feed tools (recommend_more, get_popular), 6 account-management tools (delete_my_account, set_training_consent, set_share_settings, log_rating, submit_reason_feedback, set_rating), 3 save-for-later tools (save_item, list_saved_items, remove_saved_item), and a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
         "requestBody": {
           "required": true,
           "content": {

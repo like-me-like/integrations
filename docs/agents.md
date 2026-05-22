@@ -130,9 +130,9 @@ curl -s "$BASE/api/v1/recommend/scoped" \
   }' | jq .
 ```
 
-`num_picks` only accepts 1 in stap-2; 3-pick scoped lands in a
-follow-up commit. For more picks now, call repeatedly with the
-returned title appended to a client-side exclude list.
+`num_picks` accepts `1`. For more picks in the same category,
+call repeatedly with each returned title appended to a
+client-side exclude list.
 
 ## Disambiguate
 
@@ -496,8 +496,18 @@ surfaces — pass any subset:
 
 - `liked_items[]` — items the end-user has explicitly loved.
   Each entry: `{ title: string, category?: string }`. 1-5 is
-  plenty; max 20. **Highest-impact signal**.
+  plenty; max 20. **Highest-impact signal**. Anchors **accumulate**
+  across calls under the same `X-LML-Agent-Id` — you don't resend
+  the full history every turn, and sending a new array does NOT
+  wipe earlier anchors. Send only the new ones; use
+  `unlike_items[]` to retract.
 - `disliked_items[]` — same shape, for explicit negatives.
+  Symmetric to likes: a disliked anchor steers future picks
+  **away** as strongly as a liked one steers toward. When the user
+  rejects a pick you just showed ("not that", "give me something
+  else", a thumb-down), pass that title in `disliked_items[]` on
+  the next call — the replacement is then steered away from it,
+  not merely de-duplicated.
 - `unlike_items[]` / `undislike_items[]` — titles to REMOVE from
   the persisted profile (undo, mirrors the website's thumb-toggle).
   Accepts either string array (`["Liverpool FC", "Mohamed Salah"]`)
