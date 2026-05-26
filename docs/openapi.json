@@ -311,6 +311,31 @@
                     },
                     "maxItems": 20
                   },
+                  "taste_signals": {
+                    "type": "array",
+                    "description": "See /api/v1/chat — free-form taste signals (abstract vibes/values, not catalog works) stored as person attributes.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "polarity": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "text"
+                      ]
+                    },
+                    "maxItems": 20
+                  },
                   "first_touch": {
                     "type": "object",
                     "description": "See /api/v1/chat — same shape.",
@@ -442,6 +467,14 @@
                   "disliked_items": {
                     "type": "array",
                     "description": "See /api/v1/chat.",
+                    "items": {
+                      "type": "object"
+                    },
+                    "maxItems": 20
+                  },
+                  "taste_signals": {
+                    "type": "array",
+                    "description": "See /api/v1/chat — free-form taste signals stored as person attributes.",
                     "items": {
                       "type": "object"
                     },
@@ -633,6 +666,14 @@
                   "disliked_items": {
                     "type": "array",
                     "description": "See /api/v1/chat.",
+                    "items": {
+                      "type": "object"
+                    },
+                    "maxItems": 20
+                  },
+                  "taste_signals": {
+                    "type": "array",
+                    "description": "See /api/v1/chat — free-form taste signals stored as person attributes.",
                     "items": {
                       "type": "object"
                     },

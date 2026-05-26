@@ -416,6 +416,15 @@ the reply. Same for negatives: *"hate horror"* in the text alone is
 invisible. Extraction is the host's job; structured arrays are the
 contract.
 
+**Some preferences aren't titles.** When the user expresses an
+abstract signal that doesn't resolve to a specific work — a vibe,
+value, ritual, aesthetic, pet peeve, or source of joy ("quiet
+Sunday mornings", "loves brutalist architecture", "rejects fast
+fashion", "b-movies and horror") — pass it in `taste_signals[]`
+instead of forcing it into `liked_items[]`. These are stored as
+persistent person attributes that sharpen the same cohort match;
+see the field reference below.
+
 Two prescribed patterns for the host LLM:
 
 1. **Confident extraction.** If the user has unambiguously praised
@@ -481,7 +490,7 @@ calibration tells you what to do. **Don't expose the calibration
 field verbatim to the end-user** — it's sideband feedback over the
 JSON surface.
 
-### Personalisation: liked_items, disliked_items, first_touch, user_demographics, gift_mode, display_name
+### Personalisation: liked_items, disliked_items, taste_signals, first_touch, user_demographics, gift_mode, display_name
 
 The same six optional fields are accepted on **all** these
 surfaces — pass any subset:
@@ -508,6 +517,20 @@ surfaces — pass any subset:
   else", a thumb-down), pass that title in `disliked_items[]` on
   the next call — the replacement is then steered away from it,
   not merely de-duplicated.
+- `taste_signals[]` — free-form preferences the end-user expressed
+  that are **not catalog works** — abstract vibes, values, rituals,
+  aesthetics, pet peeves, or sources of joy that describe who they
+  are ("quiet Sunday mornings", "rejects fast fashion", "loves
+  brutalist architecture", "b-movies and horror"). Use this instead
+  of `liked_items[]` / `disliked_items[]` when there's no specific
+  title or work to look up. Each entry:
+  `{ text: string, polarity?: 'like' | 'dislike', reason?: string, category?: string }`.
+  `polarity` defaults to `'like'`; `reason` is an optional short
+  evidence string in the user's own words; `category` is an
+  optional bucket-id hint. Stored as persistent person attributes
+  that feed the same summary + cohort pipeline as `liked_items` —
+  they sharpen the taste profile and the cohort match, but are
+  never returned as a recommendation. 1-5 is plenty; max 20.
 - `unlike_items[]` / `undislike_items[]` — titles to REMOVE from
   the persisted profile (undo, mirrors the website's thumb-toggle).
   Accepts either string array (`["Liverpool FC", "Mohamed Salah"]`)
@@ -551,9 +574,9 @@ surfaces — pass any subset:
   claims their shadow profile on the LML website (Connect-Agent
   flow, planned), the name carries over.
 
-When `liked_items` or `disliked_items` is non-empty, the server
-runs the **full cohort-match pipeline before** the chat brain
-sees the message:
+When `liked_items`, `disliked_items`, or `taste_signals` is
+non-empty, the server runs the **full cohort-match pipeline
+before** the chat brain sees the message:
 
 1. Persists the items to the user's shadow taste profile.
 2. Calls the LLM-summary deriver — same path the website uses on
