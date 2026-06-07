@@ -148,6 +148,41 @@ curl -s "$BASE/api/v1/disambiguate" \
   -d '{"query": "Dune", "category_hint": "film"}' | jq .
 ```
 
+## Popular
+
+Pre-computed "what's popular right now" picks for the caller's
+locale + categories, drawn from server-side materialised
+popularity rankings. No LLM call, no credit consumed. When the
+caller has been assigned to a cohort, picks are biased toward
+that cohort's tastes; cold-start callers get the locale baseline.
+Same feed the LMLM website's homepage shows.
+
+Response shape: a top-level `result.recommendations[]` of
+`Recommendation` objects plus a `cached` boolean. `cached` is
+true when every requested category resolved to at least one
+ranked pick.
+
+Two display contracts specific to this surface:
+
+- **Titles are stripped of trailing disambiguator parentheticals**
+  ("Het diner (2009 roman, Herman Koch)" → "Het diner"). The same
+  works returned by `/api/v1/recommend` keep the parens attached
+  — so a host that cards both feeds should not rely on
+  parenthetical-free titles to deduplicate across endpoints.
+- **`description` follows a viewer-language rule:**
+  `taste[locale] → description[locale] → taste[en] →
+  description[en] → flat`. A viewer sees densified taste text in
+  their own language when available, else a localised factual
+  blurb, else English — never a stale English text over a
+  localised one.
+
+```sh
+curl -s "$BASE/api/v1/popular" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{"locale": "nl", "categories": ["film", "book"]}' | jq .
+```
+
 ## Item lookup (GET)
 
 ```sh
