@@ -36,7 +36,7 @@
         "properties": {
           "title": {
             "type": "string",
-            "description": "Display title. On /api/v1/popular this is stripped of a trailing disambiguator parenthetical ('Het diner (2009 roman, Herman Koch)' → 'Het diner'); on /api/v1/recommend the brain-emitted title is passed through unchanged, so a recommend card MAY still carry parens for same-name disambiguation. Use the title verbatim for display; do NOT rely on parenthetical-free titles to be unique across categories."
+            "description": "Display title, with any trailing disambiguator parenthetical stripped ('Het diner (2009 roman, Herman Koch)' → 'Het diner'). Applied uniformly across /api/v1/recommend, /api/v1/recommend/scoped and /api/v1/popular. The disambiguator (a year, comma-separated metadata, or a media-type / version keyword in EN+NL) only exists to tell same-name works apart in the catalog — display surfaces don't need it. Genuine title-parens like 'Hello (Goodbye)' are preserved. Do NOT rely on parenthetical-free titles to be unique across categories."
           },
           "type": {
             "type": "string",

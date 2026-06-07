@@ -162,19 +162,22 @@ Response shape: a top-level `result.recommendations[]` of
 true when every requested category resolved to at least one
 ranked pick.
 
-Two display contracts specific to this surface:
+One display contract specific to this surface:
 
-- **Titles are stripped of trailing disambiguator parentheticals**
-  ("Het diner (2009 roman, Herman Koch)" → "Het diner"). The same
-  works returned by `/api/v1/recommend` keep the parens attached
-  — so a host that cards both feeds should not rely on
-  parenthetical-free titles to deduplicate across endpoints.
 - **`description` follows a viewer-language rule:**
   `taste[locale] → description[locale] → taste[en] →
   description[en] → flat`. A viewer sees densified taste text in
   their own language when available, else a localised factual
   blurb, else English — never a stale English text over a
   localised one.
+
+Titles on this surface — and on every other recommend / popular
+endpoint — are stripped of trailing disambiguator parentheticals
+("Het diner (2009 roman, Herman Koch)" → "Het diner") for clean
+display; the catalog's canonical `title_display` keeps the parens
+for matching. So the title you receive is suitable for direct
+display but should NOT be treated as globally unique across
+categories.
 
 ```sh
 curl -s "$BASE/api/v1/popular" \
