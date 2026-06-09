@@ -150,17 +150,17 @@ curl -s "$BASE/api/v1/disambiguate" \
 
 ## Popular
 
-Pre-computed "what's popular right now" picks for the caller's
-locale + categories, drawn from server-side materialised
-popularity rankings. No LLM call, no credit consumed. When the
-caller has been assigned to a cohort, picks are biased toward
-that cohort's tastes; cold-start callers get the locale baseline.
-Same feed the LMLM website's homepage shows.
+"What's popular right now" picks for the caller's locale +
+categories, drawn from the catalog by taste affinity. No LLM
+call, no credit consumed. When the caller has been assigned to a
+cohort, picks are biased toward that cohort's tastes; cold-start
+callers get a global popularity baseline. Same feed the LMLM
+website's homepage shows.
 
 Response shape: a top-level `result.recommendations[]` of
 `Recommendation` objects plus a `cached` boolean. `cached` is
 true when every requested category resolved to at least one
-ranked pick.
+pick.
 
 One display contract specific to this surface:
 

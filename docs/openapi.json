@@ -612,8 +612,8 @@
     },
     "/api/v1/popular": {
       "post": {
-        "summary": "Server-aggregated \"what's popular right now\" feed",
-        "description": "Pre-computed popular picks per (locale, categories), drawn from the server's materialised popularity rankings. Same feed the LMLM website's homepage shows. Reads are a single indexed lookup — no LLM call, no credit consumed. When the caller has been assigned to a cohort, the response is biased toward that cohort's tastes; cold-start callers get the locale baseline. Read-only.",
+        "summary": "\"What's popular right now\" feed",
+        "description": "Popular picks per (locale, categories), drawn from the catalog by taste affinity. Same feed the LMLM website's homepage shows. No LLM call, no credit consumed. When the caller has been assigned to a cohort, the response is biased toward that cohort's tastes; cold-start callers get a global popularity baseline. Read-only.",
         "requestBody": {
           "required": false,
           "content": {
@@ -661,7 +661,7 @@
                     },
                     "cached": {
                       "type": "boolean",
-                      "description": "True when every requested category resolved to at least one ranked pick; false when one or more rails were empty (e.g. a category with no ranked items yet for this locale). Cards are always served from the materialised ranking rows — there is no LLM fallback."
+                      "description": "True when every requested category resolved to at least one pick; false when one or more rails were empty (e.g. a category with no catalog items yet for this locale). Cards are served from the catalog — no LLM call in the path."
                     }
                   }
                 }
@@ -961,7 +961,7 @@
       },
       "delete": {
         "summary": "Wipe the caller's account",
-        "description": "Deletes the user row, which CASCADEs to every per-user table (taste profile, ratings log, training events, LLM call log, reason feedback, gift sessions, backups). Per-cohort cached popular_picks rows age out separately. Any model-provider scoped keys tied to the account are best-effort revoked. Idempotent: always returns 200 ok=true. Each call wipes whatever state currently exists; a second call right after the first is a no-op because the auth layer auto-recreates an empty shadow row, which the delete then clears. Does NOT consume a free credit.",
+        "description": "Deletes the user row, which CASCADEs to every per-user table (taste profile, ratings log, training events, LLM call log, reason feedback, gift sessions, backups). Any model-provider scoped keys tied to the account are best-effort revoked. Idempotent: always returns 200 ok=true. Each call wipes whatever state currently exists; a second call right after the first is a no-op because the auth layer auto-recreates an empty shadow row, which the delete then clears. Does NOT consume a free credit.",
         "responses": {
           "200": {
             "description": "Account deleted (or no-op on a fresh empty shell)",
