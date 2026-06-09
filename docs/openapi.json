@@ -36,7 +36,7 @@
         "properties": {
           "title": {
             "type": "string",
-            "description": "Display title, with any trailing disambiguator parenthetical stripped ('Het diner (2009 roman, Herman Koch)' → 'Het diner'). Applied uniformly across /api/v1/recommend, /api/v1/recommend/scoped and /api/v1/popular. The disambiguator (a year, comma-separated metadata, or a media-type / version keyword in EN+NL) only exists to tell same-name works apart in the catalog — display surfaces don't need it. Genuine title-parens like 'Hello (Goodbye)' are preserved. Do NOT rely on parenthetical-free titles to be unique across categories."
+            "description": "Display title, ready to render. Trailing disambiguator parentheticals are stripped before emit ('Het diner (2009 roman, Herman Koch)' → 'Het diner'), uniformly across /api/v1/recommend, /api/v1/recommend/scoped and /api/v1/popular. For Wikipedia-anchored items the strip is unconditional (works across every language edition), AND the title may be served in the viewer's locale when the item carries a `wikipedia_pages` langlinks map with an entry for that language — same locale-aware pattern as `wikipedia_url`. For non-Wikipedia items (brain-generated, seed-derived, or chat-minted) the strip is keyword-guarded so genuine title parens like 'Hello (Goodbye)' survive. People categories (artist, persoon, etc.) are exempt from the locale override — a name is a name across languages, so they always show the canonical form. Do NOT rely on parenthetical-free titles to be unique across categories."
           },
           "type": {
             "type": "string",
@@ -662,6 +662,23 @@
                     "cached": {
                       "type": "boolean",
                       "description": "True when every requested category resolved to at least one pick; false when one or more rails were empty (e.g. a category with no catalog items yet for this locale). Cards are served from the catalog — no LLM call in the path."
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "db",
+                        "catalog"
+                      ],
+                      "description": "Diagnostic — which engine assembled the payload. 'db' = picks biased by the caller's cohort affinity; 'catalog' = global popularity baseline (cold-start callers without a resolved cohort). Hosts MAY surface this for telemetry; otherwise safe to ignore."
+                    },
+                    "cacheLevel": {
+                      "type": "string",
+                      "enum": [
+                        "l1",
+                        "l2",
+                        "miss"
+                      ],
+                      "description": "Diagnostic — which cache tier served this payload. 'l1' = in-process cache on the responding instance, 'l2' = the shared Postgres popular cache, 'miss' = freshly computed. Optional (absent on some paths). Hosts MAY surface this for telemetry; otherwise safe to ignore."
                     }
                   }
                 }
@@ -825,6 +842,10 @@
                     "type": "integer",
                     "default": 10,
                     "maximum": 25
+                  },
+                  "locale": {
+                    "type": "string",
+                    "description": "Optional BCP-47 locale (e.g. 'nl', 'de'). Localizes each candidate's title to the caller's Wikipedia edition (else the original-language title) and its description to the caller's language (else English)."
                   }
                 }
               }
@@ -864,6 +885,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional BCP-47 locale (e.g. 'nl', 'de'). Localizes the title to the caller's Wikipedia edition (else the original-language title) and the description to the caller's language (else English)."
           }
         ],
         "responses": {
@@ -915,6 +944,14 @@
               "default": 20,
               "maximum": 50
             }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional BCP-47 locale (e.g. 'nl', 'de'). Localizes each result's title to the caller's Wikipedia edition (else the original-language title) and its description to the caller's language (else English)."
           }
         ],
         "responses": {

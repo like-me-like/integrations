@@ -158,9 +158,14 @@ callers get a global popularity baseline. Same feed the LMLM
 website's homepage shows.
 
 Response shape: a top-level `result.recommendations[]` of
-`Recommendation` objects plus a `cached` boolean. `cached` is
-true when every requested category resolved to at least one
-pick.
+`Recommendation` objects, a `cached` boolean, plus two optional
+diagnostic fields. `cached` is true when every requested category
+resolved to at least one pick. `source` is `"db"` (picks biased
+by the caller's cohort affinity) or `"catalog"` (global popularity
+baseline, cold-start callers). `cacheLevel` is `"l1"` / `"l2"` /
+`"miss"` — which cache tier served the payload. The diagnostics
+are informational; hosts MAY surface them in telemetry, otherwise
+ignore.
 
 One display contract specific to this surface:
 
@@ -175,9 +180,15 @@ Titles on this surface — and on every other recommend / popular
 endpoint — are stripped of trailing disambiguator parentheticals
 ("Het diner (2009 roman, Herman Koch)" → "Het diner") for clean
 display; the catalog's canonical `title_display` keeps the parens
-for matching. So the title you receive is suitable for direct
-display but should NOT be treated as globally unique across
-categories.
+for matching. For Wikipedia-anchored items the strip is
+unconditional across every language edition AND the title may
+arrive in the viewer's own locale when the item carries a
+`wikipedia_pages` langlinks map for that language — same
+locale-aware pattern as `wikipedia_url`. People categories
+(artist, persoon, etc.) are exempt from the locale override since
+a name is a name across languages. So the title you receive is
+ready for direct display but should NOT be treated as globally
+unique across categories.
 
 ```sh
 curl -s "$BASE/api/v1/popular" \
