@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-05-14.5"
+lml_skill_version: "2026-06-10"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -71,9 +71,18 @@ user has explicitly loved). Pass it whenever the user volunteers
 even one. Other useful fields:
 
 - `disliked_items` — explicit negatives
+- `taste_signals` — preferences that are NOT catalog works: abstract
+  vibes, values, rituals, aesthetics, pet peeves ("quiet Sunday
+  mornings", "rejects fast fashion", "loves brutalist architecture").
+  Each entry `{ text, polarity?: 'like'|'dislike', reason? }`. Use
+  this INSTEAD of liked_items when there's no specific title to look
+  up — stored as persistent person attributes that sharpen the same
+  taste profile, never returned as recommendations.
 - `display_name` — the user's first name (≤ 40 chars)
 - `user_demographics` — `age_group`, `gender`, `birth_year` only
-  when the user has shared them
+  when the user has shared them. These actively filter results:
+  items targeted at a different age group or gender are dropped.
+  Unknown → no restriction, so passing them is purely additive.
 - `gift_mode: true` — when the recommendation is for someone else
 - `locale` — BCP-47, drives reply language
 
@@ -198,15 +207,15 @@ article is missing). Absent when lookup failed.
 Optional to surface. Don't fabricate URLs when the field is
 absent.
 
-## Cheap starting points: `get_popular` and `recommend_more`
+## Cheap starting points: `get_popular`, `query_items` and `recommend_more`
 
-Two tools give the user picks without paying for a full
+Three tools give the user picks without paying for a full
 recommendation generation. Reach for them when they fit — they're
 much cheaper (and faster) than `recommend_cross` / `recommend_scoped`.
 
-**`get_popular`** — server-cached "what's popular right now" feed,
-scoped to the user's locale + categories. Same picks the Like Me
-Like homepage shows. Reach for this when:
+**`get_popular`** — "what's popular right now" feed, scoped to the
+user's locale + categories. Same picks the Like Me Like homepage
+shows. Reach for this when:
 
 - The user asks for a starting point with NO anchor — "what's
   trending?", "give me a good film for tonight", "wat is populair?",
@@ -214,13 +223,26 @@ Like homepage shows. Reach for this when:
 - You want a vibe-based opener you can frame in one sentence rather
   than firing a recommend.
 
-Does NOT consume a credit (cache-only). Personalises to the user's
-cohort if they have learned signal; falls back to themed or generic
-baseline for cold-start users.
+Does NOT consume a credit (no LLM call — served straight from the
+catalog). Personalises to the user's cohort when they have learned
+signal; cold-start users get a global popularity baseline.
 
 ```json
 { "locale": "nl", "categories": ["movie", "book"] }
 ```
+
+**`query_items`** — structured catalog query for CRITERIA requests
+that fit neither a title lookup nor a seed-anchored recommend:
+"Italian films from the 70s", "melancholic atmospheric albums",
+"recent Japanese novels". Filter by free-text description (ranked
+by semantic similarity), `categories`, a release-date window and
+`origin_lang`; `sort` is `relevance` | `popularity` | `recent` |
+`random` (random = surprise picks, no personalization). Results are
+personalized toward the user's cohort when one exists, exclude
+their already-rated titles, and come back as standard cards
+(max 30). Does NOT consume a credit. Prefer it over
+`recommend_cross` whenever the user describes criteria instead of
+naming a seed item they love.
 
 **`recommend_more`** — single-slot top-up. Use when picks are
 already on screen and the user asks to swap ONE out: "give me a
@@ -351,9 +373,10 @@ a `recommendations_mode` hint ("discovery" | "recall" |
 Claude.ai integrations, etc.) render this as interactive cards:
 image / title / reason / thumb-up / thumb-down / save buttons.
 Each card carries enough fields (`image_url`, `wikipedia_url`,
-`wikipedia_pages` for locale-aware Wikipedia links, `reason`,
-`type`, `variant`) that any host can build cards with the
-same affordances as the canonical /chat surface.
+`reason`, `type`, `variant`) that any host can build cards with
+the same affordances as the canonical /chat surface. Titles and
+`wikipedia_url` arrive already resolved to the caller's locale
+server-side — no client-side language work needed.
 
 Behavioural contract for the HOST LLM:
 
@@ -436,6 +459,29 @@ not to discover items.
 
 These tools are reactive — call them when the user signals intent.
 Don't volunteer them.
+
+## Filing feedback (`submit_feedback`)
+
+When something is wrong with the SERVICE — an item whose data is
+plainly incorrect, a tool error, results that contradict the
+request, or the user wishes for a missing capability — file it
+with `submit_feedback`: `{ kind, summary, detail?,
+reported_by_user? }`, `kind` one of `bug` / `data_quality` /
+`recommendation_quality` / `feature_request` / `other`. Two
+situations: relay a user complaint (`reported_by_user: true`,
+tell them it's been logged) or file autonomously when you observe
+a clear defect. Reviewed daily; free. NOT for taste signals —
+likes/dislikes belong in ratings — and not for questions.
+
+## Popular-on-display — telling the brain what's on screen
+
+If your surface renders a popular-picks strip alongside the chat,
+pass `popular_picks: { categories_visible: [...],
+variants_visible: [...] }` on the FIRST/opener `ask` call so the
+brain's greeting can reference the variety the user can already
+see instead of redundantly proposing it. Titles aren't passed —
+the cards do the visual work. Skip this field entirely when you
+don't render such a strip.
 
 ## Earn trust by drawing out preferences
 
