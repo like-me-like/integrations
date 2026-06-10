@@ -163,9 +163,11 @@ diagnostic fields. `cached` is true when every requested category
 resolved to at least one pick. `source` is `"db"` (picks biased
 by the caller's cohort affinity) or `"catalog"` (global popularity
 baseline, cold-start callers). `cacheLevel` is `"l1"` / `"l2"` /
-`"miss"` — which cache tier served the payload. The diagnostics
-are informational; hosts MAY surface them in telemetry, otherwise
-ignore.
+`"l2-stale"` / `"miss"` — which cache tier served the payload
+(`"l2-stale"` = a stale precomputed payload served immediately
+while a background refresh runs; picks still valid, just possibly
+a day old). The diagnostics are informational; hosts MAY surface
+them in telemetry, otherwise ignore.
 
 One display contract specific to this surface:
 
@@ -181,10 +183,10 @@ endpoint — are stripped of trailing disambiguator parentheticals
 ("Het diner (2009 roman, Herman Koch)" → "Het diner") for clean
 display; the catalog's canonical `title_display` keeps the parens
 for matching. For Wikipedia-anchored items the strip is
-unconditional across every language edition AND the title may
-arrive in the viewer's own locale when the item carries a
-`wikipedia_pages` langlinks map for that language — same
-locale-aware pattern as `wikipedia_url`. People categories
+unconditional across every language edition AND the title arrives
+already resolved to the caller's own locale when that language's
+article exists (else the original-language title) — same
+locale-aware resolution as `wikipedia_url`. People categories
 (artist, persoon, etc.) are exempt from the locale override since
 a name is a name across languages. So the title you receive is
 ready for direct display but should NOT be treated as globally
@@ -206,6 +208,34 @@ curl -s "$BASE/api/v1/item/abc123" -H "X-LML-Agent-Id: $AGENT" | jq .
 # Search
 curl -s "$BASE/api/v1/item/search?q=Interstellar&category=film&limit=5" \
   -H "X-LML-Agent-Id: $AGENT" | jq .
+```
+
+## Item query (POST) — criteria → items
+
+Structured catalog query for CRITERIA requests that don't fit
+title-prefix search or seed-anchored recommend: filter by a free-text
+taste/topic description (ranked by semantic similarity), categories,
+a release-date window and the work's origin language; returns the
+best matches (max 30). When the caller has a cohort, results are
+personalized — re-ranked toward the cohort's taste, with the caller's
+own already-rated titles excluded. `"sort": "random"` samples the
+filtered set instead, for surprise picks. Results respect the
+viewer's language/age suitability and come back as standard
+Recommendation cards, localized to `locale`. Read-only — does not
+consume a free credit.
+
+```sh
+# "Italian films from the 70s"
+curl -s -X POST "$BASE/api/v1/item/query" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "categories": ["movie"],
+    "origin_lang": "it",
+    "released_after": "1970", "released_before": "1979",
+    "description": "stylish slow-burn crime drama",
+    "locale": "en"
+  }' | jq .
 ```
 
 ## Profile lookup (GET)
@@ -288,6 +318,38 @@ with `recommendations_mode` set to `recall` (own list) or
 the mode to skip the already-rated filter on those — see the
 Chat section below for the full mode contract.
 
+## Feedback
+
+Report an issue with or suggestion about the service itself: a bug,
+wrong or missing item data, poor recommendation quality, or a
+feature request. Two situations: relay an end-user's complaint
+(`reported_by_user: true`), or file autonomously when your agent
+observes a clear defect — an item whose data is plainly wrong, a
+tool error, results that contradict the request. Feedback is
+triaged and reviewed daily.
+
+NOT for taste data — likes/dislikes belong in the recommend /
+rating flows — and not for questions; only issues and suggestions
+about the service. Does NOT consume a free credit.
+
+```sh
+curl -s "$BASE/api/v1/feedback" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "kind": "data_quality",
+    "summary": "Item shows the 1983 remake poster for the 1960 original",
+    "detail": "GET /api/v1/item/abc123 (Breathless, movie) renders the remake artwork.",
+    "reported_by_user": false
+  }' | jq .
+```
+
+`kind` is one of `bug`, `data_quality`, `recommendation_quality`,
+`feature_request`, `other`. `summary` (5-300 chars, English) is
+required; `detail` is free-form context — what happened, what was
+expected, relevant item titles/ids. MCP equivalent: the
+`submit_feedback` tool, same fields.
+
 ## Chat (conversational entry point)
 
 `POST /api/v1/chat` is the natural-language doorway. The chat brain
@@ -329,16 +391,16 @@ Response shape:
 
 Each entry in `recommendations[]` carries the structured fields hosts
 need to render cards: `title`, `type` (category), `variant`,
-`reason`, `image_url`, `description`, `wikipedia_url` (locale-aware
-link to the article), and `wikipedia_pages` (`{lang_code:
-page_title}` map when langlinks resolved). `image_url` flows from the
-items table when the recommendation matches a curated row; otherwise
-from a Wikipedia / OpenGraph lookup during enrichment.
+`reason`, `image_url`, `description`, and `wikipedia_url` (a
+locale-aware link to the article — already resolved to the caller's
+language). `image_url` flows from the items table when the
+recommendation matches a curated row; otherwise from a Wikipedia /
+OpenGraph lookup during enrichment.
 
 `recommendations_mode` tells the host how to render the array:
 
 - **`discovery`** (default) — fresh picks from `recommend_*`,
-  `get_popular`, or `search_items`. Host applies its already-rated
+  `get_popular`, `search_items`, or `query_items`. Host applies its already-rated
   filter so items the user has liked / disliked / saved before
   don't recycle. Action buttons start neutral.
 - **`recall`** — the user's own list. Returned by
@@ -606,8 +668,11 @@ surfaces — pass any subset:
   - `prefers_dark` — boolean, light/dark UI preference.
 - `user_demographics` — `{ age_group?, gender?, birth_year? }`.
   Self-declared, persisted with `demographics_source='self'`.
-  Soft signal used (when wired) to match against item-level
-  age/gender targeting.
+  Recommend, popular and query results are filtered against
+  item-level age/gender targeting when these are known — items
+  aimed at a different age group or gender are dropped from the
+  caller's results. Unknown demographics → no restriction, so
+  passing these is purely additive.
 - `gift_mode: boolean` — true when the recommendation is FOR
   SOMEONE ELSE (a birthday gift, a friend, a child). Lands in
   `gift_sessions` instead of touching the agent's own taste graph
@@ -709,17 +774,25 @@ The `source` field shapes the brain's tone:
 client (Claude Desktop, custom MCP agents, the official MCP SDKs)
 can connect, list tools, and invoke them.
 
-The server exposes the same six atomic tools as the chat endpoint
+The server exposes the same atomic tools as the chat endpoint
 plus a high-level `ask` tool that wraps `/api/v1/chat`:
 
 | **Tool** | **Shape** | **Use when** |
 | --- | --- | --- |
 | `recommend_cross` | structured | you want fine-grained control over categories + variants |
 | `recommend_scoped` | structured | you want one focused pick in a single category |
+| `recommend_more` | structured | single-slot top-up — swap one pick out of an earlier result (pass the slot's already-shown titles as `exclude`) |
+| `get_popular` | structured | "what's popular right now" baseline picks, no LLM cost |
 | `disambiguate` | structured | the seed is ambiguous (e.g. "Dune") |
 | `get_item` | structured | look up canonical item details by id |
 | `search_items` | structured | title-prefix browse the items catalog |
+| `query_items` | structured | criteria queries — semantic description + category/year/origin-language/popularity filters ("Italian films from the 70s") |
 | `get_profile` | structured | fetch a public profile by slug |
+| `save_item` | structured | bookmark a pick the user wants to remember to TRY (distinct from liked_items) |
+| `list_saved_items` | structured | the user's bookmarks, as cards (mode `recall`) |
+| `remove_saved_item` | structured | remove a bookmark |
+| `list_my_likes` | structured | the user's own taste anchors, as cards (mode `recall`) |
+| `submit_feedback` | structured | file a bug / wrong item data / poor-quality / feature-request report (see Feedback below) |
 | `ask` | natural-language | one-shot conversational entry — same brain as `/chat` |
 
 Atomic tools = the agent's host LLM orchestrates. `ask` = our brain

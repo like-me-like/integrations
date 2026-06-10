@@ -36,7 +36,7 @@
         "properties": {
           "title": {
             "type": "string",
-            "description": "Display title, ready to render. Trailing disambiguator parentheticals are stripped before emit ('Het diner (2009 roman, Herman Koch)' → 'Het diner'), uniformly across /api/v1/recommend, /api/v1/recommend/scoped and /api/v1/popular. For Wikipedia-anchored items the strip is unconditional (works across every language edition), AND the title may be served in the viewer's locale when the item carries a `wikipedia_pages` langlinks map with an entry for that language — same locale-aware pattern as `wikipedia_url`. For non-Wikipedia items (brain-generated, seed-derived, or chat-minted) the strip is keyword-guarded so genuine title parens like 'Hello (Goodbye)' survive. People categories (artist, persoon, etc.) are exempt from the locale override — a name is a name across languages, so they always show the canonical form. Do NOT rely on parenthetical-free titles to be unique across categories."
+            "description": "Display title, ready to render, already resolved to the caller's locale server-side. Trailing disambiguator parentheticals are stripped before emit ('Het diner (2009 roman, Herman Koch)' → 'Het diner'), uniformly across /api/v1/recommend, /api/v1/recommend/scoped and /api/v1/popular. For Wikipedia-anchored items the title is served in the caller's language when that language's article exists (else the original-language title), and the strip is unconditional (works across every language edition) — same locale-aware resolution as `wikipedia_url`. For non-Wikipedia items (brain-generated, seed-derived, or chat-minted) the strip is keyword-guarded so genuine title parens like 'Hello (Goodbye)' survive. People categories (artist, persoon, etc.) are exempt from the locale override — a name is a name across languages, so they always show the canonical form. Do NOT rely on parenthetical-free titles to be unique across categories."
           },
           "type": {
             "type": "string",
@@ -75,14 +75,6 @@
             "type": "string",
             "nullable": true,
             "description": "Locale-aware full Wikipedia page URL (e.g. nl.wikipedia.org for a Dutch viewer when the localised article exists; English fallback when it doesn't). Hosts MAY surface as a clickable reference; absent when Wikipedia resolution failed entirely."
-          },
-          "wikipedia_pages": {
-            "type": "object",
-            "nullable": true,
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Optional langlinks map `{ language_code: article_title }` persisted from a prior Wikipedia resolution. Lets clients build a locale-correct link without an extra round-trip. Absent on cache-only paths and when langlinks fetch failed."
           },
           "wikidata_id": {
             "type": "string",
@@ -676,9 +668,10 @@
                       "enum": [
                         "l1",
                         "l2",
+                        "l2-stale",
                         "miss"
                       ],
-                      "description": "Diagnostic — which cache tier served this payload. 'l1' = in-process cache on the responding instance, 'l2' = the shared Postgres popular cache, 'miss' = freshly computed. Optional (absent on some paths). Hosts MAY surface this for telemetry; otherwise safe to ignore."
+                      "description": "Diagnostic — which cache tier served this payload. 'l1' = in-process cache on the responding instance, 'l2' = the shared server-side cache, 'l2-stale' = a stale precomputed payload served immediately while a background refresh runs (picks are still valid, just possibly a day old), 'miss' = freshly computed. Optional (absent on some paths). Hosts MAY surface this for telemetry; otherwise safe to ignore."
                     }
                   }
                 }
@@ -967,6 +960,88 @@
                       "items": {
                         "$ref": "#/components/schemas/Item"
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/item/query": {
+      "post": {
+        "summary": "Structured catalog query (criteria → items)",
+        "description": "Filter the items catalog by any combination of a free-text taste/topic description (ranked by semantic similarity), categories, a release-date window and the work's origin language; returns the best matches (max 30). Fills the gap between /item/search (exact-title prefix) and /recommend (seed-anchored): criteria queries like 'Italian films from the 70s' or 'melancholic atmospheric albums'. When the caller has a cohort, results are personalized — re-ranked toward the cohort's taste, with the caller's own already-rated titles excluded; `sort: 'random'` instead samples the filtered set for surprise picks (no personalization). Results pass the same server-side suitability layer as recommend/popular (viewer language gate + age/gender targeting) and come back in the standard Recommendation card shape, localized to `locale`. Read-only; does NOT consume a free credit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Free-text taste/topic/mood to match semantically. Omit for pure attribute filters."
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Category ids to restrict to."
+                  },
+                  "released_after": {
+                    "type": "string",
+                    "description": "'YYYY' or 'YYYY-MM-DD'."
+                  },
+                  "released_before": {
+                    "type": "string",
+                    "description": "'YYYY' or 'YYYY-MM-DD'."
+                  },
+                  "origin_lang": {
+                    "type": "string",
+                    "description": "ISO-639-1 origin language of the WORK ('it' = Italian-origin). Not the reply language."
+                  },
+                  "sort": {
+                    "type": "string",
+                    "enum": [
+                      "relevance",
+                      "popularity",
+                      "recent",
+                      "random"
+                    ]
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 12,
+                    "maximum": 30
+                  },
+                  "locale": {
+                    "type": "string",
+                    "description": "BCP-47 viewer locale — drives the language-suitability gate and localized titles/descriptions."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Matching catalog items + the filters actually applied after validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Recommendation"
+                      }
+                    },
+                    "applied_filters": {
+                      "type": "object"
                     }
                   }
                 }
@@ -1453,6 +1528,80 @@
         }
       }
     },
+    "/api/v1/feedback": {
+      "post": {
+        "summary": "File feedback about the service (bug / data / quality)",
+        "description": "Report an issue with or suggestion about the service itself: a bug, wrong or missing item data, poor recommendation quality, or a feature request. Use it to relay an end-user's complaint (reported_by_user: true) or autonomously when your agent observes a clear defect — an item whose data is plainly wrong, an error, results that contradict the request. Feedback is triaged and reviewed daily. Not for taste data: likes/dislikes belong in the recommend/rating endpoints. Does NOT consume a free credit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "summary"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "bug",
+                      "data_quality",
+                      "recommendation_quality",
+                      "feature_request",
+                      "other"
+                    ]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 300,
+                    "description": "One-line summary, in English."
+                  },
+                  "detail": {
+                    "type": "string",
+                    "maxLength": 4000,
+                    "description": "What happened, what was expected, relevant item titles/ids."
+                  },
+                  "reported_by_user": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "true when relaying an end-user's complaint; false for agent-observed issues."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feedback stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid X-LML-Agent-Id"
+          }
+        }
+      }
+    },
     "/api/v1/me/gifts": {
       "get": {
         "summary": "Caller's past gift_mode sessions",
@@ -1785,7 +1934,7 @@
                   },
                   "user_demographics": {
                     "type": "object",
-                    "description": "Optional self-declared demographics. Persisted on the shadow profile with demographics_source='self' so the retrieval filter (when wired) can match against item-level age/gender targeting.",
+                    "description": "Optional self-declared demographics. Persisted on the shadow profile with demographics_source='self'. Recommend, popular and query results are filtered against item-level age/gender targeting when these are known — items aimed at a different age group or gender are dropped; unknown demographics → no restriction.",
                     "properties": {
                       "age_group": {
                         "type": "string",
@@ -1903,7 +2052,7 @@
     "/api/v1/mcp": {
       "post": {
         "summary": "MCP (Model Context Protocol) Streamable-HTTP transport",
-        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 6 atomic recommend / catalog tools (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, get_profile), 3 me-introspection tools (get_my_profile, list_my_gifts, refresh_my_summary), 2 feed tools (recommend_more, get_popular), 6 account-management tools (delete_my_account, set_training_consent, set_share_settings, log_rating, submit_reason_feedback, set_rating), 3 save-for-later tools (save_item, list_saved_items, remove_saved_item), and a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
+        "description": "JSON-RPC 2.0 endpoint exposing the agent surface as a standard MCP server. Tools: 7 atomic recommend / catalog tools (recommend_cross, recommend_scoped, disambiguate, get_item, search_items, query_items, get_profile), 3 me-introspection tools (get_my_profile, list_my_gifts, refresh_my_summary), 2 feed tools (recommend_more, get_popular), 6 account-management tools (delete_my_account, set_training_consent, set_share_settings, log_rating, submit_reason_feedback, set_rating), 3 save-for-later tools (save_item, list_saved_items, remove_saved_item), and a high-level 'ask' tool that wraps /api/v1/chat. Methods: initialize, tools/list, tools/call, ping. Auth via X-LML-Agent-Id header — same as the rest of /api/v1/*.",
         "requestBody": {
           "required": true,
           "content": {
