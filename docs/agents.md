@@ -36,6 +36,14 @@ Each cell yields ~2 picks from the LLM, so this caps each call at
 recommendation model (~25% parse-error rate observed above ~10–12
 items in one streamed JSON response).
 
+The cell budget is about result **count**, not speed: spanning
+several categories in one call is fast, so don't avoid a wide
+cross-domain mix for performance reasons. The only request that
+takes a noticeably longer moment is the **first** personalised
+call for a brand-new end-user (cohort matching — see "Total extra
+latency on the FIRST call" under Personalisation); every call
+after that, broad or narrow, is quick.
+
 Examples:
 
 | categories | variants | cells | items | OK? |
@@ -216,10 +224,10 @@ Structured catalog query for CRITERIA requests that don't fit
 title-prefix search or seed-anchored recommend: filter by a free-text
 taste/topic description (ranked by semantic similarity), categories,
 a release-date window and the work's origin language; returns the
-best matches (max 30). When the caller has a cohort, results are
-personalized — re-ranked toward the cohort's taste, with the caller's
-own already-rated titles excluded. `"sort": "random"` samples the
-filtered set instead, for surprise picks. Results respect the
+best matches (max 30). For an identified caller, results are
+personalized — the caller's own already-rated titles are excluded.
+`"sort": "random"` samples the filtered set instead, for surprise
+picks. Results respect the
 viewer's language/age suitability and come back as standard
 Recommendation cards, localized to `locale`. Read-only — does not
 consume a free credit.
