@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations from Like Me Like. Use when the user asks for a book, film, song, place, food, or other item based on something else they love. Supports natural-language input via the `ask` tool, or atomic tools (`recommend_cross`, `recommend_scoped`, `disambiguate`) for fine-grained control. Pass any liked items, disliked items, demographics, or display name the user has shared — they materially improve recommendation quality.
-lml_skill_version: "2026-06-10"
+lml_skill_version: "2026-06-24"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/claude-skill/SKILL.md"
 allowed-tools:
   - "mcp__like-me-like__*"
@@ -95,6 +95,14 @@ whatever you already know from the conversation context.
 Each cell yields ~2 picks, so a single call returns at most ~10
 results. If the user asks for more, split into parallel calls and
 merge the results.
+
+This budget caps result **count**, not speed: spanning several
+categories in one call is fast, so go BROAD freely — don't avoid a
+wide cross-domain mix for performance, and don't pre-warn the user
+that breadth will take a while (it won't). The only call that takes
+a noticeably longer moment is the FIRST personalised one for a
+brand-new user (cohort matching — see First-call latency); every
+call after that, broad or narrow, is quick.
 
 ## Supported categories
 
