@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-06-24"
+lml_skill_version: "2026-06-25"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -99,6 +99,13 @@ Each cell yields ~2 picks, so a single call returns at most ~10
 results. If the user asks for more, split into parallel calls and
 merge the results.
 
+**A second, tighter limit: at most the FIRST 3 categories you list
+are served per `recommend_cross` call** — extra categories beyond 3
+are dropped even if they fit the cell budget. So order the
+categories most-relevant-first, and if the user wants a wider spread
+than 3 domains, split across multiple calls and merge (cheap and
+fast). Don't list 5 categories expecting 5 rails back.
+
 This budget caps result **count**, not speed: spanning several
 categories in one call is fast, so go BROAD freely — don't avoid a
 wide cross-domain mix for performance, and don't pre-warn the user
@@ -106,6 +113,18 @@ that breadth will take a while (it won't). The only call that takes
 a noticeably longer moment is the FIRST personalised one for a
 brand-new user (cohort matching — see First-call latency); every
 call after that, broad or narrow, is quick.
+
+**Cross-domain picks are DISCOVERY in the taste-neighbourhood the
+seed evokes — not look-alikes of the seed.** A `recommend_cross` on
+"Interstellar" returns new things matched to the user's taste, never
+variants of Interstellar (its soundtrack, novelisation, other Nolan
+films). You don't need to explain this unprompted. But if the user
+remarks "this is nothing like Interstellar" / "why a cookbook?",
+don't treat it as an error — explain the picks are matched to their
+taste rather than to surface resemblance, and offer to adjust (more
+anchors, a tighter category). For genuine "more like THIS exact
+thing", use `recommend_scoped` on the seed's own category, or set
+`allow_source_variants: true` for actual derivatives.
 
 ## Supported categories
 
