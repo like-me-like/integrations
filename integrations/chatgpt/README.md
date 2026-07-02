@@ -22,8 +22,12 @@ plus an auth picker.
    type → header name `X-LML-Agent-Id` → paste your stable
    end-user id (8–256 ASCII chars).
 5. Save the action. ChatGPT will list the available operations
-   (`recommend`, `recommendScoped`, `chat`, `disambiguate`,
-   `getProfile`, `searchItems`).
+   (`chat`, `recommendScoped`, `queryItems`, `getPopular`,
+   `disambiguate`, `searchItems`, `getProfile`, `submitFeedback`).
+   Three of these are free starters that never consume a call
+   credit: `queryItems` (criteria queries — "Italian films from
+   the 70s"), `getPopular` (what's trending, no seed needed) and
+   `submitFeedback`.
 6. In the GPT's **Instructions** field, paste the suggested block
    below ([§ Suggested GPT instructions](#suggested-gpt-instructions)).
 
@@ -35,8 +39,9 @@ GPT to call the Action AND tells it how to use the
 
 > Use the Like Me Like Action whenever the user asks for taste
 > recommendations. Prefer `chat` for natural-language requests;
-> use `recommend` or `recommendScoped` when you want structured
-> control.
+> use `recommendScoped` for one focused pick, `queryItems` for
+> criteria queries ("Italian films from the 70s" — free), and
+> `getPopular` for "what's trending" with no seed (free).
 >
 > **First call — bridge the asymmetry.** YOU know this user from
 > our conversation; Like Me Like does not. On the first call,
@@ -47,6 +52,18 @@ GPT to call the Action AND tells it how to use the
 > you've mentioned loving — that OK?" and use the confirmed set.
 > Don't fire a generic call and accept its generic reply as the
 > ceiling; the reply quality scales with the inputs you bring.
+> Preferences that aren't catalog works — vibes, values, rituals,
+> pet peeves ("quiet Sunday mornings", "rejects fast fashion") —
+> go in `taste_signals`, not `liked_items`.
+>
+> **Cross-domain picks are discovery, not look-alikes.** Picks
+> based on a seed are new things matched to the user's taste in
+> the seed's neighbourhood — never variants of the seed itself.
+> If the user says "this is nothing like X", that's by design:
+> explain the match is on their taste rather than surface
+> resemblance, and offer to adjust. Requests are fast regardless
+> of breadth — don't pre-warn about slowness (only the very first
+> personalised call takes ~15-30 s for taste matching).
 >
 > **Read `agent_calibration` on every response.** Every reply
 > includes a `signal_quality` (`weak`/`partial`/`rich`),

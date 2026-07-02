@@ -23,11 +23,12 @@ components:
     Recommendation:
       type: object
       properties:
-        title: { type: string }
+        title: { type: string, description: "Display title, already resolved to the caller's locale and stripped of disambiguator parentheticals — render as-is." }
         type: { type: string, description: "category id (book / movie / song / ...)" }
         description: { type: string, nullable: true }
         reason: { type: string, nullable: true }
-        imageUrl: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        wikipedia_url: { type: string, nullable: true, description: "Locale-aware Wikipedia link when resolved; optional to surface." }
         variant: { type: string, enum: [best, recent, wild] }
     LikedItem:
       type: object
@@ -35,6 +36,19 @@ components:
       properties:
         title: { type: string }
         category: { type: string, description: "optional category id" }
+    TasteSignal:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          description: "The signal in a few words, in the user's own framing ('quiet Sunday mornings', 'rejects fast fashion')."
+        polarity:
+          type: string
+          enum: [like, dislike]
+          description: "Defaults to like."
+        reason: { type: string, description: "Optional short evidence in the user's own words." }
+        category: { type: string, description: "Optional category id hint." }
 security:
   - LMLAgentId: []
 paths:
@@ -68,6 +82,27 @@ paths:
                   type: array
                   items: { $ref: "#/components/schemas/LikedItem" }
                   maxItems: 20
+                taste_signals:
+                  type: array
+                  description: |
+                    Free-form preferences that are NOT catalog works — abstract
+                    vibes, values, rituals, aesthetics, pet peeves ("quiet
+                    Sunday mornings", "loves brutalist architecture"). Use
+                    INSTEAD of liked_items when there's no specific title to
+                    look up; stored as persistent person attributes that
+                    sharpen the same taste profile.
+                  items: { $ref: "#/components/schemas/TasteSignal" }
+                  maxItems: 20
+                user_demographics:
+                  type: object
+                  description: |
+                    Optional, only what the user actually shared. Results are
+                    filtered against item-level age/gender targeting when
+                    known; unknown means no restriction (purely additive).
+                  properties:
+                    age_group: { type: string }
+                    gender: { type: string }
+                    birth_year: { type: integer }
                 display_name:
                   type: string
                   maxLength: 40
@@ -88,6 +123,12 @@ paths:
                   recommendations:
                     type: array
                     items: { $ref: "#/components/schemas/Recommendation" }
+                  recommendations_mode:
+                    type: string
+                    description: "discovery (fresh picks) | recall (the user's own list) | disambiguate (option set)."
+                  agent_calibration:
+                    type: object
+                    description: "Sideband feedback for YOU (the GPT), not the user — signal_quality, missing_signals[], hint. Read it every turn."
         "400": { description: Validation error }
         "401": { description: Missing X-LML-Agent-Id }
         "402": { description: Free tier exhausted; top-up required }
@@ -119,6 +160,10 @@ paths:
                 liked_items:
                   type: array
                   items: { $ref: "#/components/schemas/LikedItem" }
+                  maxItems: 20
+                taste_signals:
+                  type: array
+                  items: { $ref: "#/components/schemas/TasteSignal" }
                   maxItems: 20
                 display_name: { type: string, maxLength: 40 }
                 gift_mode: { type: boolean, default: false }
@@ -207,3 +252,137 @@ paths:
       responses:
         "200":
           description: Items list
+
+  /api/v1/item/query:
+    post:
+      operationId: queryItems
+      summary: Structured catalog query — criteria in, items out (free)
+      description: |
+        For CRITERIA requests that fit neither a title lookup nor a
+        seed-anchored recommend: "Italian films from the 70s",
+        "melancholic atmospheric albums". Semantic-similarity ranked,
+        personalized to the caller's taste when known, already-rated
+        titles excluded. Does NOT consume a free-tier call.
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: Free-text taste/topic description to rank by.
+                categories:
+                  type: array
+                  items: { type: string }
+                released_after:
+                  type: string
+                  description: "'YYYY' or 'YYYY-MM-DD'."
+                released_before:
+                  type: string
+                  description: "'YYYY' or 'YYYY-MM-DD'."
+                origin_lang:
+                  type: string
+                  description: "ISO-639-1 origin language of the WORK ('it' = Italian-origin). Not the reply language."
+                available_on:
+                  type: array
+                  items: { type: string }
+                  description: "Only items with a known offer on ANY of these providers ('Netflix', 'Spotify'). Coverage is partial — treat a thin result as a coverage gap, not provider absence."
+                availability_region:
+                  type: string
+                  description: "Optional 2-letter region scoping the availability check ('NL', 'US')."
+                sort:
+                  type: string
+                  enum: [relevance, popularity, recent, random]
+                  default: relevance
+                limit: { type: integer, default: 12, maximum: 30 }
+                locale: { type: string, default: en }
+      responses:
+        "200":
+          description: Matching items as recommendation cards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: array
+                    items: { $ref: "#/components/schemas/Recommendation" }
+
+  /api/v1/popular:
+    post:
+      operationId: getPopular
+      summary: What's popular right now (free, no seed needed)
+      description: |
+        Pre-computed popular picks per locale + categories — the same
+        feed the Like Me Like homepage shows. Biased toward the
+        caller's taste cohort when one exists; global popularity
+        baseline otherwise. Use for "what's trending?" / "give me a
+        starting point" asks with NO seed item. Does NOT consume a
+        free-tier call.
+      x-openai-isConsequential: false
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                locale: { type: string, default: en }
+                categories:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: Popular feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      recommendations:
+                        type: array
+                        items: { $ref: "#/components/schemas/Recommendation" }
+                  cached: { type: boolean }
+
+  /api/v1/feedback:
+    post:
+      operationId: submitFeedback
+      summary: File feedback about the service (bug / data / quality)
+      description: |
+        Report an issue or suggestion about the service itself — a bug,
+        wrong item data, poor recommendation quality, or a feature
+        request. Relay an end-user complaint (reported_by_user true) or
+        file autonomously on a clear defect. NOT for taste data
+        (likes/dislikes belong on the recommend/chat calls). Reviewed
+        daily; does NOT consume a free-tier call.
+      x-openai-isConsequential: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, summary]
+              properties:
+                kind:
+                  type: string
+                  enum: [bug, data_quality, recommendation_quality, feature_request, other]
+                summary:
+                  type: string
+                  description: One-line summary (5-300 chars, English).
+                detail:
+                  type: string
+                  description: What happened, what was expected, relevant item titles/ids.
+                reported_by_user:
+                  type: boolean
+                  default: false
+                  description: True when relaying a problem the user raised.
+      responses:
+        "200":
+          description: Feedback accepted
