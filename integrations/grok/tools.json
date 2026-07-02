@@ -22,10 +22,37 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "title": { "type": "string" },
-                  "category": { "type": "string" }
+                  "title": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
                 },
-                "required": ["title"]
+                "required": [
+                  "title"
+                ]
+              }
+            },
+            "taste_signals": {
+              "type": "array",
+              "description": "Preferences that are NOT catalog works: abstract vibes, values, rituals, pet peeves ('quiet Sunday mornings', 'rejects fast fashion'). Use INSTEAD of liked_items when there's no specific title. Each entry: {text, polarity?: 'like'|'dislike', reason?}.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "polarity": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ]
               }
             },
             "display_name": {
@@ -37,7 +64,9 @@
               "description": "True when the recommendation is for someone else."
             }
           },
-          "required": ["message"]
+          "required": [
+            "message"
+          ]
         }
       }
     },
@@ -49,24 +78,43 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "item": { "type": "string" },
-            "target_category": { "type": "string" },
-            "locale": { "type": "string" },
+            "item": {
+              "type": "string"
+            },
+            "target_category": {
+              "type": "string"
+            },
+            "locale": {
+              "type": "string"
+            },
             "liked_items": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "title": { "type": "string" },
-                  "category": { "type": "string" }
+                  "title": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
                 },
-                "required": ["title"]
+                "required": [
+                  "title"
+                ]
               }
             },
-            "display_name": { "type": "string" },
-            "gift_mode": { "type": "boolean" }
+            "display_name": {
+              "type": "string"
+            },
+            "gift_mode": {
+              "type": "boolean"
+            }
           },
-          "required": ["item", "target_category"]
+          "required": [
+            "item",
+            "target_category"
+          ]
         }
       }
     },
@@ -78,11 +126,85 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "query": { "type": "string" },
-            "category_hint": { "type": "string" },
-            "limit": { "type": "integer" }
+            "query": {
+              "type": "string"
+            },
+            "category_hint": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer"
+            }
           },
-          "required": ["query"]
+          "required": [
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lml_query_items",
+        "description": "Structured catalog query for CRITERIA requests that fit neither a title lookup nor a seed-based recommend: 'Italian films from the 70s', 'melancholic atmospheric albums'. Semantic-similarity ranked, personalized when the user is known, already-rated titles excluded. FREE — never consumes a call credit.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Free-text taste/topic description to rank by."
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "released_after": {
+              "type": "string",
+              "description": "'YYYY' or 'YYYY-MM-DD'."
+            },
+            "released_before": {
+              "type": "string",
+              "description": "'YYYY' or 'YYYY-MM-DD'."
+            },
+            "origin_lang": {
+              "type": "string",
+              "description": "ISO-639-1 origin language of the WORK ('it' = Italian-origin), not the reply language."
+            },
+            "sort": {
+              "type": "string",
+              "description": "relevance (default) | popularity | recent | random."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max 30, default 12."
+            },
+            "locale": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lml_get_popular",
+        "description": "What's popular right now, per locale + categories — the same feed the Like Me Like homepage shows, biased to the user's taste cohort when known. Use for 'what's trending?' / 'give me a starting point' with NO seed item. FREE — never consumes a call credit.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "locale": {
+              "type": "string"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     }

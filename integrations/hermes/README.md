@@ -36,11 +36,16 @@ triggers cohort matching that can take ~10–30 s, and a chained
 
 ## Tools exposed
 
-Same seven tools as every other MCP integration: `ask` (one-shot
-natural language), `recommend_cross`, `recommend_scoped`,
-`disambiguate`, `get_item`, `search_items`, `get_profile`. See the
-[OpenAPI spec](../../docs/openapi.json) or
-[`docs/agents.md`](../../docs/agents.md) for argument shapes.
+Same tool set as every other MCP integration: `ask` (one-shot
+natural language) plus the atomic tools — `recommend_cross`,
+`recommend_scoped`, `recommend_more`, `query_items`, `get_popular`,
+`disambiguate`, `get_item`, `search_items`, `get_profile`, the
+save/recall tools and `submit_feedback`. The manifest is served
+live by the server, so new tools appear automatically. Three are
+free starters that never consume a call credit: `query_items`
+(criteria queries), `get_popular` (trending, no seed) and
+`submit_feedback`. See the [OpenAPI spec](../../docs/openapi.json)
+or [`docs/agents.md`](../../docs/agents.md) for argument shapes.
 
 ## Host-LLM instructions (recommended)
 

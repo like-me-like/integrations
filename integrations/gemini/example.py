@@ -39,6 +39,10 @@ def call_lml(name: str, args: dict) -> dict:
         r = requests.post(f"{LML_BASE}/api/v1/recommend/scoped", headers=headers, json=args, timeout=120)
     elif name == "lml_disambiguate":
         r = requests.post(f"{LML_BASE}/api/v1/disambiguate", headers=headers, json=args, timeout=30)
+    elif name == "lml_query_items":
+        r = requests.post(f"{LML_BASE}/api/v1/item/query", headers=headers, json=args, timeout=30)
+    elif name == "lml_get_popular":
+        r = requests.post(f"{LML_BASE}/api/v1/popular", headers=headers, json=args, timeout=30)
     else:
         return {"error": f"unknown tool {name}"}
     r.raise_for_status()

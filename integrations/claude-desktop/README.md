@@ -50,10 +50,16 @@ Config locations:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-Restart Claude Desktop after editing. You should see seven Like Me
-Like tools listed in the tool inspector: `recommend_cross`,
-`recommend_scoped`, `disambiguate`, `get_item`, `search_items`,
-`get_profile`, `ask`.
+Restart Claude Desktop after editing. You should see the Like Me
+Like tools listed in the tool inspector — the natural-language
+`ask` plus the atomic set (`recommend_cross`, `recommend_scoped`,
+`recommend_more`, `query_items`, `get_popular`, `disambiguate`,
+`get_item`, `search_items`, `get_profile`, save/recall tools,
+`submit_feedback`). The manifest is served live by the server, so
+new tools appear automatically without a config change. Three are
+free starters that never consume a call credit: `query_items`
+(criteria queries — "Italian films from the 70s"), `get_popular`
+(what's trending, no seed needed) and `submit_feedback`.
 
 ## How Claude uses the tools
 

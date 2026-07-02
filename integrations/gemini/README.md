@@ -51,6 +51,21 @@ your `systemInstruction` config):
 > When `weak` or `partial`, extract the top missing signal from
 > prior conversation context for the next call. Don't expose this
 > field to the user.
+>
+> Preferences that aren't catalog works — vibes, values, rituals,
+> pet peeves ("quiet Sunday mornings", "rejects fast fashion") —
+> go in `taste_signals`, not `liked_items`. For criteria queries
+> ("Italian films from the 70s") use `lml_query_items`; for
+> "what's trending" with no seed use `lml_get_popular` — both are
+> free and never consume a call credit.
+>
+> **Cross-domain picks are discovery, not look-alikes.** Picks
+> based on a seed are new things matched to the user's taste in
+> the seed's neighbourhood — never variants of the seed itself.
+> If the user says "this is nothing like X", that's by design:
+> explain the match is on their taste, and offer to adjust.
+> Requests are fast regardless of breadth; only the very first
+> personalised call takes ~15-30 s (taste matching).
 
 ## Why no native MCP
 

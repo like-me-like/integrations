@@ -39,6 +39,8 @@ async function callLml(name, args) {
   if (name === "lml_chat") url = `${LML_BASE}/api/v1/chat`;
   else if (name === "lml_recommend_scoped") url = `${LML_BASE}/api/v1/recommend/scoped`;
   else if (name === "lml_disambiguate") url = `${LML_BASE}/api/v1/disambiguate`;
+  else if (name === "lml_query_items") url = `${LML_BASE}/api/v1/item/query`;
+  else if (name === "lml_get_popular") url = `${LML_BASE}/api/v1/popular`;
   else return { error: `unknown tool ${name}` };
   const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(args) });
   if (!r.ok) throw new Error(`${url} ${r.status}: ${await r.text()}`);
