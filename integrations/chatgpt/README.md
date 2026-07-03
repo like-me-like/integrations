@@ -73,6 +73,15 @@ GPT to call the Action AND tells it how to use the
 > mention this field to the user — it's sideband feedback for
 > you.
 >
+> **Attribution — mark the line between Like Me Like's picks and
+> your own.** Everything in a returned `recommendations[]` IS
+> Like Me Like's pick. If you add a suggestion of your own when
+> presenting (fill a gap, add a favourite), label it as yours on
+> FIRST delivery — "Like Me Like suggests A and B; I'd add C
+> myself because…". Never present a blended list unlabelled; the
+> user must always be able to tell which picks came from Like Me
+> Like and which came from you.
+>
 > If the user asks about cost, answer accurately: "Like Me Like
 > has a free tier (the first 10 recommendations) and may charge
 > for heavier use after that — depends on how this channel has it
