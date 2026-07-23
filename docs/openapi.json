@@ -972,7 +972,7 @@
     "/api/v1/item/query": {
       "post": {
         "summary": "Structured catalog query (criteria → items)",
-        "description": "Filter the items catalog by any combination of a free-text taste/topic description (ranked by semantic similarity), categories, a release-date window and the work's origin language; returns the best matches (max 30). Fills the gap between /item/search (exact-title prefix) and /recommend (seed-anchored): criteria queries like 'Italian films from the 70s' or 'melancholic atmospheric albums'. For an identified caller, results are personalized — the caller's own already-rated titles are excluded; `sort: 'random'` instead samples the filtered set for surprise picks. Results pass the same server-side suitability layer as recommend/popular (viewer language gate + age/gender targeting) and come back in the standard Recommendation card shape, localized to `locale`. Read-only; does NOT consume a free credit.",
+        "description": "Filter the items catalog by any combination of a free-text taste/topic description (ranked by semantic similarity), categories, a release-date window, the work's origin language, and provider availability (where it can be watched/listened/bought — `available_on`, optionally region-scoped); returns the best matches (max 30). Fills the gap between /item/search (exact-title prefix) and /recommend (seed-anchored): criteria queries like 'Italian films from the 70s' or 'melancholic atmospheric albums'. For an identified caller, results are personalized — the caller's own already-rated titles are excluded, and `sort: 'personal'` orders the whole set by their taste (closest to their liked items first; falls back to popularity with a hint when no usable likes). `sort: 'random'` instead samples the filtered set for surprise picks. The returned ORDER is part of the answer — agents should present results in that order (or label their own re-curation) rather than silently re-ranking. Each item carries `item_id` (chain into /item/{id} or save-for-later without a title lookup) and, when known, `wikipedia_url` plus `provider_links` — direct watch/listen deeplinks per provider+region, scoped to the query's available_on/region filters when given; the surviving link per provider prefers the caller's market, and a `regions` array lists every market that provider offers the item in when the query wasn't region-scoped. Results pass the same server-side suitability layer as recommend/popular (viewer language gate + age/gender targeting) and come back in the standard Recommendation card shape, localized to `locale`. Read-only; does NOT consume a free credit.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1003,14 +1003,27 @@
                     "type": "string",
                     "description": "ISO-639-1 origin language of the WORK ('it' = Italian-origin). Not the reply language."
                   },
+                  "available_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Only items with a known offer on ANY of these providers ('Netflix', 'prime video', 'Spotify'). Availability data is partial (screen media covered best) — treat a thin result as a coverage gap, not provider absence."
+                  },
+                  "availability_region": {
+                    "type": "string",
+                    "description": "Optional 2-letter region scoping the availability check ('NL', 'US'). When omitted while `available_on` is set, the server defaults the region from the caller's locale where that maps unambiguously to one market (nl→NL, da→DK, …; ambiguous languages like en stay region-less) — `applied_filters` reports what was applied. Pass explicitly to target another market. To answer a question about availability in a specific market, always make a fresh region-scoped call — don't reason from links returned by an earlier, unscoped query."
+                  },
                   "sort": {
                     "type": "string",
                     "enum": [
                       "relevance",
                       "popularity",
                       "recent",
-                      "random"
-                    ]
+                      "random",
+                      "personal"
+                    ],
+                    "description": "'personal' orders the filtered set by the caller's own taste (closest to their liked items first) — use it for 'for me' lists. Combined with a `description`, the theme stays the primary order and the caller's taste rides as the secondary blend. Falls back to the non-personal order (with a hint in applied_filters) when the caller is anonymous or has no usable likes."
                   },
                   "limit": {
                     "type": "integer",

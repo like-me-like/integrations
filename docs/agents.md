@@ -232,6 +232,23 @@ viewer's language/age suitability and come back as standard
 Recommendation cards, localized to `locale`. Read-only — does not
 consume a free credit.
 
+**Provider availability.** `available_on` (provider names —
+'Netflix', 'prime video', 'Spotify') keeps only items with a known
+offer there; `availability_region` scopes it to one market. When
+`available_on` is set and `availability_region` is omitted, the
+server **defaults the region from the caller's locale** where that
+maps unambiguously to one market (nl→NL, da→DK, …; ambiguous
+languages like en stay region-less) — `applied_filters` reports
+what was applied. Matching items carry `provider_links` (direct
+watch/listen deeplinks); the surviving link per provider prefers
+the caller's market, with a `regions` array listing the other
+markets when the query wasn't region-scoped. **To answer whether
+something is available in a specific market, always make a fresh
+region-scoped call** — never reason from links remembered from an
+earlier, unscoped result. Availability data is partial (screen
+media covered best): treat a thin result as a coverage gap, not
+provider absence.
+
 ```sh
 # "Italian films from the 70s"
 curl -s -X POST "$BASE/api/v1/item/query" \
@@ -243,6 +260,18 @@ curl -s -X POST "$BASE/api/v1/item/query" \
     "released_after": "1970", "released_before": "1979",
     "description": "stylish slow-burn crime drama",
     "locale": "en"
+  }' | jq .
+
+# "What's on Netflix in the Netherlands to stay awake with?"
+curl -s -X POST "$BASE/api/v1/item/query" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "categories": ["movie"],
+    "description": "gripping thriller that keeps you awake",
+    "available_on": ["Netflix"],
+    "availability_region": "NL",
+    "locale": "nl"
   }' | jq .
 ```
 
@@ -608,6 +637,24 @@ This replaces having to memorise every passing rule. Each turn the
 calibration tells you what to do. **Don't expose the calibration
 field verbatim to the end-user** — it's sideband feedback over the
 JSON surface.
+
+### Attribution — mark the line between LML picks and your own
+
+Everything in a returned `recommendations[]` IS Like Me Like's
+pick. Host LLMs often want to add a suggestion of their own when
+presenting (fill a gap, swap an alternative, add a favourite) —
+that's fine, but do NOT present the blended list unlabelled. Mark
+the boundary on FIRST delivery, not only when the user asks.
+Subtle works:
+
+> "Like Me Like suggests *Civil War* and *The Menu*; I'd also add
+> *Vice* myself because it sits closer to the tone you mentioned."
+
+Anti-pattern: N picks as one flat list with no marking of which
+came from Like Me Like and which the host added. End-users treat
+the list as the service's output; unlabelled additions corrupt
+both the user's trust and the feedback signal (a thumbs-down on
+the host's own pick lands on LML's account).
 
 ### Personalisation: liked_items, disliked_items, taste_signals, first_touch, user_demographics, gift_mode, display_name
 
