@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-06-25"
+lml_skill_version: "2026-08-05"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -261,18 +261,29 @@ signal; cold-start users get a global popularity baseline.
 { "locale": "nl", "categories": ["movie", "book"] }
 ```
 
-**`query_items`** — structured catalog query for CRITERIA requests
-that fit neither a title lookup nor a seed-anchored recommend:
+**`query_items`** — structured catalog query for CRITERIA requests:
 "Italian films from the 70s", "melancholic atmospheric albums",
 "recent Japanese novels". Filter by free-text description (ranked
-by semantic similarity), `categories`, a release-date window and
-`origin_lang`; `sort` is `relevance` | `popularity` | `recent` |
-`random` (random = surprise picks, no personalization). Results are
-personalized toward the user's cohort when one exists, exclude
-their already-rated titles, and come back as standard cards
-(max 30). Does NOT consume a credit. Prefer it over
-`recommend_cross` whenever the user describes criteria instead of
-naming a seed item they love.
+by semantic similarity), `categories`, a release-date window,
+`origin_lang`, and provider availability (`available_on` +
+`availability_region` — where it can actually be watched/listened);
+`sort` is `relevance` | `popularity` | `recent` | `random` (random =
+surprise picks, no personalization). Results are personalized toward
+the user's cohort when one exists, exclude their already-rated
+titles, and come back as standard cards (max 30). Does NOT consume
+a credit.
+
+Routing rule: prefer it over `recommend_cross` whenever the user
+describes criteria — AND for seed-similar asks that carry a filter.
+"A film like Project Hail Mary I can watch on Netflix" is
+`query_items` with `anchor_item` (the named work; its own taste
+vector ranks the filtered set) + `available_on`/`availability_region`
+— never paraphrase the named work into `description` (that loses
+the anchor), and don't use `recommend_cross` (it cannot filter on
+availability). Only a pure seed-similar ask with no filters belongs
+to `recommend_*`. For availability-in-a-market questions, always
+make a fresh region-scoped `query_items` call — never answer from
+provider links remembered from an earlier, unscoped result.
 
 **`recommend_more`** — single-slot top-up. Use when picks are
 already on screen and the user asks to swap ONE out: "give me a
