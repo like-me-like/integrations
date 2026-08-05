@@ -81,6 +81,38 @@
             "nullable": true,
             "description": "Server-resolved Wikidata QID for the underlying entity, when one was verified (via the local Wikidata mirror or the canonical Wikipedia article). LMLM's own website does not surface this field, but it is on the wire so hosts that want a stable cross-source identifier can use it."
           },
+          "provider_links": {
+            "type": "array",
+            "nullable": true,
+            "description": "Direct watch/listen/read deeplinks from the catalog's own availability layer, attached on recommend, query and popular picks when offers are known (absent otherwise). One link per provider, viewer's-market-preferred, ranked flatrate > free > ads > rent > buy, capped per item. Surface as clickable where helpful; never invent provider urls. For an availability GUARANTEE in a specific market, use /api/v1/item/query with available_on + availability_region — these links are best-known offers, not a per-market verdict.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "description": "Provider slug (e.g. 'netflix', 'spotify')."
+                },
+                "offer_type": {
+                  "type": "string",
+                  "description": "flatrate | free | ads | rent | buy."
+                },
+                "region": {
+                  "type": "string",
+                  "description": "The surviving link's market — the caller's region when such an offer exists, else the best offer elsewhere."
+                },
+                "regions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Every market this provider offers the item in (sorted, capped). Present only when >1 and the query wasn't region-scoped."
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "retailer": {
             "type": "string",
             "nullable": true,
@@ -972,7 +1004,7 @@
     "/api/v1/item/query": {
       "post": {
         "summary": "Structured catalog query (criteria → items)",
-        "description": "Filter the items catalog by any combination of a free-text taste/topic description (ranked by semantic similarity), categories, a release-date window, the work's origin language, and provider availability (where it can be watched/listened/bought — `available_on`, optionally region-scoped); returns the best matches (max 30). Fills the gap between /item/search (exact-title prefix) and /recommend (seed-anchored): criteria queries like 'Italian films from the 70s' or 'melancholic atmospheric albums'. For an identified caller, results are personalized — the caller's own already-rated titles are excluded, and `sort: 'personal'` orders the whole set by their taste (closest to their liked items first; falls back to popularity with a hint when no usable likes). `sort: 'random'` instead samples the filtered set for surprise picks. The returned ORDER is part of the answer — agents should present results in that order (or label their own re-curation) rather than silently re-ranking. Each item carries `item_id` (chain into /item/{id} or save-for-later without a title lookup) and, when known, `wikipedia_url` plus `provider_links` — direct watch/listen deeplinks per provider+region, scoped to the query's available_on/region filters when given; the surviving link per provider prefers the caller's market, and a `regions` array lists every market that provider offers the item in when the query wasn't region-scoped. Results pass the same server-side suitability layer as recommend/popular (viewer language gate + age/gender targeting) and come back in the standard Recommendation card shape, localized to `locale`. Read-only; does NOT consume a free credit.",
+        "description": "Filter the items catalog by any combination of a free-text taste/topic description (ranked by semantic similarity), categories, a release-date window, the work's origin language, and provider availability (where it can be watched/listened/bought — `available_on`, optionally region-scoped); returns the best matches (max 30). Fills the gap between /item/search (exact-title prefix) and /recommend (seed-anchored): criteria queries like 'Italian films from the 70s' or 'melancholic atmospheric albums'. Also the right endpoint for seed-similar asks that carry a filter — 'a film like Project Hail Mary on Netflix in NL' is `anchor_item` (the named work, ranked by its own taste vector) + `available_on`/`availability_region` here; /recommend cannot filter on availability, and paraphrasing the work into `description` loses the anchor. For an identified caller, results are personalized — the caller's own already-rated titles are excluded, and `sort: 'personal'` orders the whole set by their taste (closest to their liked items first; falls back to popularity with a hint when no usable likes). `sort: 'random'` instead samples the filtered set for surprise picks. The returned ORDER is part of the answer — agents should present results in that order (or label their own re-curation) rather than silently re-ranking. Each item carries `item_id` (chain into /item/{id} or save-for-later without a title lookup) and, when known, `wikipedia_url` plus `provider_links` — direct watch/listen deeplinks per provider+region, scoped to the query's available_on/region filters when given; the surviving link per provider prefers the caller's market, and a `regions` array lists every market that provider offers the item in when the query wasn't region-scoped. Results pass the same server-side suitability layer as recommend/popular (viewer language gate + age/gender targeting) and come back in the standard Recommendation card shape, localized to `locale`. Read-only; does NOT consume a free credit.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1013,6 +1045,14 @@
                   "availability_region": {
                     "type": "string",
                     "description": "Optional 2-letter region scoping the availability check ('NL', 'US'). When omitted while `available_on` is set, the server defaults the region from the caller's locale where that maps unambiguously to one market (nl→NL, da→DK, …; ambiguous languages like en stay region-less) — `applied_filters` reports what was applied. Pass explicitly to target another market. To answer a question about availability in a specific market, always make a fresh region-scoped call — don't reason from links returned by an earlier, unscoped query."
+                  },
+                  "anchor_item": {
+                    "type": "string",
+                    "description": "A named work to rank by taste-similarity to (combines with the availability/date filters). The anchor itself is excluded from results; unresolvable anchors fall back to description/popularity with a hint."
+                  },
+                  "anchor_item_id": {
+                    "type": "string",
+                    "description": "Exact catalog id for the anchor; wins over anchor_item."
                   },
                   "sort": {
                     "type": "string",

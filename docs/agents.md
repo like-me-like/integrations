@@ -24,6 +24,14 @@ The streaming response uses the LMLM wire format:
 `SOURCE: <category> | <enriched item> | <orig lang> | <anchor lang>\n`
 followed by narration text, then a sentinel + JSON tail.
 
+Picks carry `provider_links` (direct watch/listen deeplinks from
+the catalog's own availability layer) when offers are known — one
+link per provider, caller's-market-preferred. These are best-known
+offers, NOT a per-market guarantee: for "must be available on
+[provider] in [market]" asks, use `/api/v1/item/query` with
+`available_on` + `availability_region` (and `anchor_item` when the
+ask is seed-similar) — recommend cannot filter on availability.
+
 **Per-call cell budget.** Configure categories and variants freely
 as long as their **product** stays within budget:
 
@@ -239,7 +247,19 @@ offer there; `availability_region` scopes it to one market. When
 server **defaults the region from the caller's locale** where that
 maps unambiguously to one market (nl→NL, da→DK, …; ambiguous
 languages like en stay region-less) — `applied_filters` reports
-what was applied. Matching items carry `provider_links` (direct
+what was applied.
+
+**Anchored + filtered in one call.** A seed-similar ask that
+carries a filter — "a film like Project Hail Mary I can watch on
+Netflix in NL" — is THIS endpoint, not `/recommend`: pass the
+named work as `anchor_item` (or `anchor_item_id` from a prior
+disambiguate) and the filters alongside. The work's own taste
+vector becomes the ranking key over the filtered set; never
+paraphrase the work into `description` (a paraphrase loses the
+anchor). The anchor itself is excluded from results;
+`applied_filters.anchor` reports the resolved title, and an
+unresolvable anchor falls back to description/popularity with a
+hint. Matching items carry `provider_links` (direct
 watch/listen deeplinks); the surviving link per provider prefers
 the caller's market, with a `regions` array listing the other
 markets when the query wasn't region-scoped. **To answer whether
@@ -269,6 +289,18 @@ curl -s -X POST "$BASE/api/v1/item/query" \
   -d '{
     "categories": ["movie"],
     "description": "gripping thriller that keeps you awake",
+    "available_on": ["Netflix"],
+    "availability_region": "NL",
+    "locale": "nl"
+  }' | jq .
+
+# "A film like Project Hail Mary I can watch on Netflix in NL"
+curl -s -X POST "$BASE/api/v1/item/query" \
+  -H "X-LML-Agent-Id: $AGENT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "categories": ["movie"],
+    "anchor_item": "Project Hail Mary",
     "available_on": ["Netflix"],
     "availability_region": "NL",
     "locale": "nl"
