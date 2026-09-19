@@ -883,8 +883,24 @@ plus a high-level `ask` tool that wraps `/api/v1/chat`:
 | `ask` | natural-language | one-shot conversational entry — same brain as `/chat` |
 
 Atomic tools = the agent's host LLM orchestrates. `ask` = our brain
-orchestrates. Pricing is the same per call against the free-tier /
-balance counters.
+orchestrates.
+
+**What counts against the free tier.** Metering mirrors the REST
+endpoints: `ask`, `recommend_cross`, `recommend_scoped`,
+`recommend_more`, `disambiguate`, `get_item`, `search_items`,
+`get_profile` and `refresh_my_summary` each count as one call
+against the free-tier / balance counters, charged per tool call (a
+batch with two of them costs two). Everything else is free: the
+protocol messages (`initialize`, `tools/list`, `ping`,
+notifications), `get_popular`, `query_items`, `submit_feedback`, the
+saved-items and likes tools, and the account tools — so a host can
+connect, list tools and reconnect as often as it likes without
+spending the end-user's credits. When the free tier is exhausted and
+balance enforcement is on, a metered tool call returns a tool result
+with `isError: true` whose `structuredContent` carries
+`error: "payment_required"` plus the x402 `payment_requirements`
+payload. Top up via `POST /api/v1/billing/topup` (see Payments) and
+retry.
 
 ### JSON-RPC handshake
 
@@ -985,8 +1001,8 @@ x402 protocol settling USDC on Base.
 
 The flow:
 
-1. Free tier (first 10 calls): no payment, just call.
-2. After free tier exhausted: every call is gated by balance.
+1. Free tier (first 10 metered calls): no payment, just call.
+2. After free tier exhausted: every metered call is gated by balance.
 3. To top up: POST /api/v1/billing/topup. Without an X-Payment
    header you get **HTTP 402 Payment Required** with the
    PaymentRequirements payload (price, asset, network, payTo
@@ -998,6 +1014,13 @@ The flow:
 During the public preview, x402 enforcement may be off — calls
 past the free tier are still served while the ledger logs the
 would-be-charged amount. Production traffic is gated by balance.
+
+Which calls count: the recommendation-producing endpoints and their
+MCP twins — `chat` / `ask`, `recommend*`, `disambiguate`, `item/{id}`,
+`item/search`, `profiles/{slug}` and `me/refresh-summary`. Read-only
+and bookkeeping endpoints (`popular`, `item/query`, `feedback`, the
+other `me/*` calls) and the MCP protocol messages (`initialize`,
+`tools/list`, `ping`, notifications) never count.
 
 ### Who pays — three patterns
 
