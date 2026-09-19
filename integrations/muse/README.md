@@ -259,6 +259,10 @@ cover, or a step differs, please
 - **401** — the `X-LML-Agent-Id` header is missing or malformed
   (needs 8–256 printable ASCII characters, no spaces). Re-enter the
   id in the credential prompt.
+- **How many free calls do I have left?** — ask Muse to call
+  `get_my_profile` (free). Its `tier` block reports
+  `freeCallsRemaining`, next to what Like Me Like has learned about
+  you so far.
 - **Tool error with `payment_required`** — the 10 free calls on this
   id are used up. Top up (see Cost above) or, for a quick look at
   what the service does, keep to the free tools.

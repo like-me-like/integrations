@@ -349,6 +349,10 @@ curl -s -X POST "$BASE/api/v1/me/refresh-summary" \
 The same three are exposed as MCP tools: `get_my_profile`,
 `list_my_gifts`, `refresh_my_summary`. Use whichever surface fits
 your host (HTTP for REST clients, MCP for tool-calling agents).
+`get_my_profile` returns the same shape as `GET /api/v1/me`,
+including the `tier` block (`isFreeTier`, `freeCallsRemaining`), so
+an MCP-only host can answer "how many free calls do I have left?"
+without a second auth path.
 
 ## Saved items + recall lists
 
@@ -858,8 +862,10 @@ The `source` field shapes the brain's tone:
 ## MCP (Model Context Protocol)
 
 `POST /api/v1/mcp` is a standards-compliant MCP server. Any MCP-aware
-client (Claude Desktop, custom MCP agents, the official MCP SDKs)
-can connect, list tools, and invoke them.
+client (Claude Desktop, Meta Muse and Muse Code, OpenClaw, Hermes,
+custom MCP agents, the official MCP SDKs) can connect, list tools, and
+invoke them. Per-host recipes live in the public
+[integrations repo](https://github.com/like-me-like/integrations).
 
 The server exposes the same atomic tools as the chat endpoint
 plus a high-level `ask` tool that wraps `/api/v1/chat`:
