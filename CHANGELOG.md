@@ -13,6 +13,19 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-09-19] — recipe only, no SKILL version bump
+
+### Added — Meta Muse recipe
+
+New [`integrations/muse/`](integrations/muse/) recipe for Meta's
+personal agent: the custom-connector prompt (remote MCP over
+Streamable HTTP, `X-LML-Agent-Id` header entered via Muse's secure
+credential prompt), how to pick a stable id, the per-user free tier
+and which tools are metered, measured first-call latency, the
+OpenAPI fallback prompt, and a Muse Code `settings.json` snippet.
+Server side nothing changed; the SKILL.md files stay at
+`2026-08-05`.
+
 ## [2026-05-14.5]
 
 ### Added — `recommendations_mode` parity on MCP `ask`

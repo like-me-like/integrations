@@ -75,6 +75,7 @@ Pick the integration folder that matches the platform you're building on:
 | Claude Code / Skills | [`integrations/claude-skill/`](integrations/claude-skill/) | SKILL.md format, works in Claude Code & Claude.ai |
 | OpenClaw / Clawhub | [`integrations/openclaw/`](integrations/openclaw/) | Skill + plugin formats |
 | Hermes | [`integrations/hermes/`](integrations/hermes/) | Plugin format |
+| Meta Muse / Muse Code | [`integrations/muse/`](integrations/muse/) | Custom connector — remote MCP, header auth |
 | ChatGPT (Custom GPTs) | [`integrations/chatgpt/`](integrations/chatgpt/) | OpenAPI Action |
 | Gemini | [`integrations/gemini/`](integrations/gemini/) | Function-calling tools |
 | Grok (xAI) | [`integrations/grok/`](integrations/grok/) | Function-calling tools |
@@ -92,7 +93,8 @@ Like Me Like into the channel you're driving, here's the decision
 tree:
 
 1. **Does your host LLM support MCP servers natively?** (Claude Desktop,
-   Claude Code, OpenClaw with MCP plugin, Cursor, Cline, etc.) Use
+   Claude Code, Meta Muse, OpenClaw with MCP plugin, Cursor, Cline,
+   etc.) Use
    the MCP endpoint at `/api/v1/mcp`. See
    [`integrations/claude-desktop/`](integrations/claude-desktop/) for
    the canonical config shape — most MCP-aware clients accept the
