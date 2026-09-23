@@ -17,8 +17,7 @@ components:
       description: |
         Stable per-end-user identifier (8-256 ASCII chars). Reuse
         the same value across calls so the shadow taste profile
-        builds up. First 10 calls per id are free; after that an
-        x402 top-up is required.
+        builds up. Free to use; fair-use rate limits apply.
   schemas:
     Recommendation:
       type: object
@@ -131,7 +130,6 @@ paths:
                     description: "Sideband feedback for YOU (the GPT), not the user — signal_quality, missing_signals[], hint. Read it every turn."
         "400": { description: Validation error }
         "401": { description: Missing X-LML-Agent-Id }
-        "402": { description: Free tier exhausted; top-up required }
 
   /api/v1/recommend/scoped:
     post:
@@ -262,7 +260,7 @@ paths:
         seed-anchored recommend: "Italian films from the 70s",
         "melancholic atmospheric albums". Semantic-similarity ranked,
         personalized to the caller's taste when known, already-rated
-        titles excluded. Does NOT consume a free-tier call.
+        titles excluded.
       x-openai-isConsequential: false
       requestBody:
         required: true
@@ -320,8 +318,7 @@ paths:
         feed the Like Me Like homepage shows. Biased toward the
         caller's taste cohort when one exists; global popularity
         baseline otherwise. Use for "what's trending?" / "give me a
-        starting point" asks with NO seed item. Does NOT consume a
-        free-tier call.
+        starting point" asks with NO seed item.
       x-openai-isConsequential: false
       requestBody:
         required: false
@@ -360,7 +357,7 @@ paths:
         request. Relay an end-user complaint (reported_by_user true) or
         file autonomously on a clear defect. NOT for taste data
         (likes/dislikes belong on the recommend/chat calls). Reviewed
-        daily; does NOT consume a free-tier call.
+        daily.
       x-openai-isConsequential: true
       requestBody:
         required: true

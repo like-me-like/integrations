@@ -16,54 +16,40 @@ This repo contains:
 - **Worked examples** under [`examples/`](examples/) — curl, Node, Python
 
 The base API is `https://www.likemelike.com/api/v1/`. All endpoints take an
-`X-LML-Agent-Id` header — see Pricing below for what that header means
-for cost.
+`X-LML-Agent-Id` header — see Pricing below for what that header
+identifies.
 
-## Pricing — paid API with per-end-user free tier
+## Pricing — free to use
 
-**Like Me Like is a paid API.** You pay per call once the free tier is
-exhausted; payments settle on a public crypto network — no account
-required, no card on file. Two payment rails are supported, both
-non-custodial:
+**Like Me Like is free to use.** No payment, no card, no account: an
+end-user is identified only by the stable id you send in
+`X-LML-Agent-Id`. Fair-use rate limits apply. Paid plans for heavy
+commercial use may come later; if they do, we announce them here
+first, and the `tier.metered` flag (below) flips from `false` to
+`true` so integrations can tell programmatically.
 
-- **[x402](https://www.x402.org)** — USDC on Base. Stable USD pricing,
-  EVM-wallet sign flow. Works with EOA wallets (MetaMask, Rainbow,
-  Trust, Coinbase Wallet legacy, programmatic agents using
-  `privateKeyToAccount`). Smart Wallets (Coinbase Smart Wallet /
-  Base Wallet, ERC-4337) are temporarily blocked by an upstream
-  CDP facilitator bug — see the wallet-compatibility table in
-  [`docs/agents.md`](docs/agents.md#hosted-payment-page-pattern-c-lite).
-- **[L402](https://docs.lightning.engineering/the-lightning-network/l402)
-  / Lightning** — BOLT11 invoices, sub-second settle, scan-and-go
-  wallet UX. Better consumer-facing flow if your end-users hold
-  Bitcoin / Lightning wallets (Phoenix, Wallet of Satoshi, Zeus,
-  Strike, Cash App, Alby, etc.). Works with every wallet type
-  including Smart Wallets.
-
-The free tier and the billing key are **per end-user**, not per
-integration:
+The id is still **per end-user**, not per integration:
 
 - The `X-LML-Agent-Id` header identifies the **end-user**, not the
   integration. A WhatsApp bot serving 1 000 users sends 1 000
   distinct agent IDs (typically derived as `sha256(phone_number)` or
-  similar stable hash). A single-user dev tool sends one.
-- **Each agent ID gets 10 free calls** (one-time, no monthly reset)
-  before payment is required.
-- **After that, calls deduct from the agent's balance** — top up via
-  either rail. The agent's balance is shared across rails: you can
-  top up with USDC once and lightning later, or vice versa.
+  a similar stable hash); a single-user dev tool sends one. Each id
+  is its own taste profile, so one id shared across users blends
+  their tastes into one profile.
+- The profile surfaces (`GET /api/v1/me`, the MCP `get_my_profile`
+  tool) and the chat meta event carry a `tier` block: `metered`,
+  `isFreeTier`, `freeCallsRemaining`. While `metered` is `false` the
+  counter is informational only and never refuses a call.
+- The prepaid-balance endpoints (`/api/v1/billing/*`: x402 USDC on
+  Base, or Lightning) stay live and documented for integrators who
+  want to prepay for a future paid tier — nothing is gated on them
+  today. See [`docs/agents.md` § Payments](docs/agents.md#payments-x402-via-coinbase-cdp).
 
-That economic shape is important for how you wire up the integration:
-
-| You're building | Agent ID strategy | Cost note |
-| --- | --- | --- |
-| A multi-tenant bot (WhatsApp, Discord, Slack) | One agent ID per end-user — `sha256(user_id)` | Each user gets their own free tier; you decide whether to top them up or pass the cost through |
-| A personal tool / single-user assistant | One stable agent ID, reused | 10 free calls then top up your own balance |
-| A demo / quick test | A random agent ID per session | Each session burns one of the 10-call budget; reuse the same id while testing |
-
-See [`docs/agents.md` § Payments](docs/agents.md#payments-x402-via-coinbase-cdp)
-for the full top-up flow (both x402 and Lightning), and the
-per-platform README for the header-config snippet.
+| You're building | Agent ID strategy |
+| --- | --- |
+| A multi-tenant bot (WhatsApp, Discord, Slack) | One agent ID per end-user — `sha256(user_id)` |
+| A personal tool / single-user assistant | One stable agent ID, reused |
+| A demo / quick test | A random agent ID per session (a fresh id is an empty profile) |
 
 ## For developers
 
@@ -132,13 +118,12 @@ memorise input-passing rules — react per-turn to whatever the
 calibration tells you. See
 [`docs/agents.md`](docs/agents.md) §Reading agent_calibration.
 
-**On cost:** every call you make decrements either the end-user's
-10-call free tier or the agent's USDC balance. If your host has a
-stable per-end-user identifier (phone number, OAuth user id,
-session id), hash it and use it as `X-LML-Agent-Id` so each user
-gets their own free tier and a clean billing identity. If you're a
-single-user assistant, one stable id reused across calls is fine.
-See "Pricing" above.
+**On cost:** there is none — Like Me Like is free to use. The id
+still matters: if your host has a stable per-end-user identifier
+(phone number, OAuth user id, session id), hash it and use it as
+`X-LML-Agent-Id` so each user gets their own taste profile. If
+you're a single-user assistant, one stable id reused across calls is
+fine. See "Pricing" above.
 
 ## Skill versioning — keep your local SKILL.md current
 

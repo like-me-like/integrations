@@ -56,10 +56,9 @@ Like tools listed in the tool inspector — the natural-language
 `recommend_more`, `query_items`, `get_popular`, `disambiguate`,
 `get_item`, `search_items`, `get_profile`, save/recall tools,
 `submit_feedback`). The manifest is served live by the server, so
-new tools appear automatically without a config change. Three are
-free starters that never consume a call credit: `query_items`
-(criteria queries — "Italian films from the 70s"), `get_popular`
-(what's trending, no seed needed) and `submit_feedback`.
+new tools appear automatically without a config change. Good
+starters: `query_items` (criteria queries — "Italian films from the
+70s") and `get_popular` (what's trending, no seed needed).
 
 ## How Claude uses the tools
 
@@ -94,20 +93,17 @@ The brain orchestrates the atomic tools on your behalf. For
 fine-grained control you can address tools directly ("use
 `disambiguate` on Dune first").
 
-## Cost & free tier
+## Cost
 
-Like Me Like is a paid API. Each `X-LML-Agent-Id` (one per
-end-user) gets **10 free calls one-time**, then `POST /api/v1/billing/topup`
-gates further calls via x402 USDC on Base. For a personal Claude
-Desktop install where you're the only user, one stable id reused
-across sessions is the right shape — you'll get 10 free calls on
-that id, then top up. See
-[Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).
+Like Me Like is free to use: no payment, no card, no account. For a
+personal Claude Desktop install where you're the only user, one
+stable id reused across sessions is the right shape — it is your
+taste profile. Fair-use rate limits apply; see
+[Pricing in the top-level README](../../README.md#pricing--free-to-use).
 
 ## Verification
 
 If Claude can't see the tools, run `tools/list` from the inspector
 or check the Claude Desktop logs (`~/Library/Logs/Claude/` on macOS).
 A 401 response means the `X-LML-Agent-Id` header is missing or
-malformed; a 402 means you've exhausted the 10-call free tier and
-need to top up.
+malformed.

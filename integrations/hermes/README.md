@@ -41,10 +41,9 @@ natural language) plus the atomic tools — `recommend_cross`,
 `recommend_scoped`, `recommend_more`, `query_items`, `get_popular`,
 `disambiguate`, `get_item`, `search_items`, `get_profile`, the
 save/recall tools and `submit_feedback`. The manifest is served
-live by the server, so new tools appear automatically. Three are
-free starters that never consume a call credit: `query_items`
-(criteria queries), `get_popular` (trending, no seed) and
-`submit_feedback`. See the [OpenAPI spec](../../docs/openapi.json)
+live by the server, so new tools appear automatically. Good
+starters: `query_items` (criteria queries) and `get_popular`
+(trending, no seed). See the [OpenAPI spec](../../docs/openapi.json)
 or [`docs/agents.md`](../../docs/agents.md) for argument shapes.
 
 ## Host-LLM instructions (recommended)
@@ -76,12 +75,11 @@ mcp_servers:
 For agents that want fine control, expose all tools and let the
 host LLM choose.
 
-## Cost & free tier
+## Cost
 
-Like Me Like is a paid API. Each `X-LML-Agent-Id` gets **10 free
-calls one-time**, then `POST /api/v1/billing/topup` gates further
-calls via x402 USDC on Base. For a personal Hermes setup with one
-end-user, reuse a single stable id across calls; for multi-tenant
-deployments derive the id from the end-user (`sha256(user_id)`)
-so each user gets their own free tier. See
-[Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).
+Like Me Like is free to use: no payment, no card, no account. For a
+personal Hermes setup with one end-user, reuse a single stable id
+across calls; for multi-tenant deployments derive the id from the
+end-user (`sha256(user_id)`) so each user gets their own taste
+profile. See
+[Pricing in the top-level README](../../README.md#pricing--free-to-use).

@@ -56,8 +56,7 @@ your `systemInstruction` config):
 > pet peeves ("quiet Sunday mornings", "rejects fast fashion") —
 > go in `taste_signals`, not `liked_items`. For criteria queries
 > ("Italian films from the 70s") use `lml_query_items`; for
-> "what's trending" with no seed use `lml_get_popular` — both are
-> free and never consume a call credit.
+> "what's trending" with no seed use `lml_get_popular`.
 >
 > **Cross-domain picks are discovery, not look-alikes.** Picks
 > based on a seed are new things matched to the user's taste in
@@ -86,15 +85,13 @@ calling. They're unsuitable for Like Me Like beyond a "tell the
 user to visit likemelike.com" persona. We don't ship a Gem
 manifest in this repo.
 
-## Cost & free tier
+## Cost & identity
 
-Like Me Like is a paid API. Each `X-LML-Agent-Id` gets **10 free
-calls one-time**, then x402 USDC top-ups gate further calls.
+Like Me Like is free to use: no payment, no card, no account.
 
 Because your code dispatches the HTTP call (not Gemini directly),
 **you control the agent ID per request** — derive it from the
 end-user's identifier (`sha256(user_id)`) so each user gets their
-own free tier and clean billing. That's the right shape for any
-multi-user app.
+own taste profile. That's the right shape for any multi-user app.
 
-See [Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).
+See [Pricing in the top-level README](../../README.md#pricing--free-to-use).

@@ -24,10 +24,9 @@ plus an auth picker.
 5. Save the action. ChatGPT will list the available operations
    (`chat`, `recommendScoped`, `queryItems`, `getPopular`,
    `disambiguate`, `searchItems`, `getProfile`, `submitFeedback`).
-   Three of these are free starters that never consume a call
-   credit: `queryItems` (criteria queries — "Italian films from
-   the 70s"), `getPopular` (what's trending, no seed needed) and
-   `submitFeedback`.
+   Good starters: `queryItems` (criteria queries — "Italian films
+   from the 70s") and `getPopular` (what's trending, no seed
+   needed).
 6. In the GPT's **Instructions** field, paste the suggested block
    below ([§ Suggested GPT instructions](#suggested-gpt-instructions)).
 
@@ -82,10 +81,8 @@ GPT to call the Action AND tells it how to use the
 > user must always be able to tell which picks came from Like Me
 > Like and which came from you.
 >
-> If the user asks about cost, answer accurately: "Like Me Like
-> has a free tier (the first 10 recommendations) and may charge
-> for heavier use after that — depends on how this channel has it
-> set up." Don't bring up cost proactively.
+> If the user asks about cost: Like Me Like is free to use. Don't
+> bring up cost proactively.
 
 ## Constraints (per OpenAI's Actions docs)
 
@@ -107,32 +104,23 @@ GPT to call the Action AND tells it how to use the
 - ChatGPT shows the full URL of every Action call to the user
   before the first one runs (consent step). The "always allow"
   toggle then suppresses subsequent prompts.
-- Rate limits apply per ChatGPT user, not per `X-LML-Agent-Id` —
-  bear that in mind for free-tier accounting.
+- Rate limits apply per ChatGPT user, not per `X-LML-Agent-Id`.
 
-## Cost & free tier — read this before publishing your GPT
+## Cost & identity — read this before publishing your GPT
 
-Like Me Like is a paid API. Each `X-LML-Agent-Id` gets **10 free
-calls one-time**, then x402 USDC top-ups gate further calls.
+Like Me Like is free to use, so there is no bill to think about.
+What matters is identity: for Custom GPTs the agent ID is set
+**once** in the Actions auth field and is shared by every user of
+your GPT. All of your GPT's users therefore share a single Like Me
+Like taste profile — fine for a personal GPT, wrong for a published
+one, where one user's likes would colour another's picks. ChatGPT
+has no way to forward an end-user identifier to an Action header
+per request.
 
-For Custom GPTs the agent ID is set **once** in the Actions auth
-field and is shared by every user of your GPT. That has two
-implications:
+If you need per-end-user profiles, build on a platform that
+supports per-user tool-call identity instead — e.g. an MCP server
+connected to Claude Desktop, Meta Muse or OpenClaw, or a custom
+function-calling integration where your backend chooses the agent
+ID per request.
 
-- **Single agent ID, single free tier.** All users of your GPT
-  share the same 10-call budget — so the free tier is exhausted
-  fast on a published GPT. Top up the agent's balance in advance,
-  or expect 402 responses to surface to your users.
-- **Cost flows to the GPT operator (you).** ChatGPT doesn't have a
-  way to forward an end-user identifier to an Action header per
-  request, so you can't put each user on their own free tier from
-  inside ChatGPT. You're effectively running a single account on
-  behalf of your users.
-
-If you need per-end-user accounting (each user their own free
-tier), build on a platform that supports per-user tool-call
-identity instead — e.g. an MCP server connected to Claude Desktop
-or OpenClaw, or a custom function-calling integration where your
-backend chooses the agent ID per request.
-
-See [Payments in docs/agents.md](../../docs/agents.md#payments-x402-via-coinbase-cdp).
+See [Pricing in the top-level README](../../README.md#pricing--free-to-use).

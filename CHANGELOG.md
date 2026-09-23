@@ -13,6 +13,24 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## [2026-09-23]
+
+### Changed — Like Me Like is free to use
+
+The "paid API with a 10-call free tier" story is gone from every
+recipe, the README, the examples and both SKILL.md files. Like Me
+Like is free to use: no payment, no card, no account; fair-use rate
+limits apply. The server's `tier` block (`GET /api/v1/me`, MCP
+`get_my_profile`, the chat meta event) gained a `metered` flag —
+`false` today — so a host can tell programmatically whether the
+`freeCallsRemaining` counter beside it gates anything (it doesn't).
+The prepaid-balance endpoints stay documented in `docs/agents.md`
+§ Payments as optional, for a future paid tier.
+
+SKILL content change → `lml_skill_version` bumped to `2026-09-23`
+in both SKILLs (cost section rewritten; per-tool "consumes a
+credit" notes removed).
+
 ## [2026-09-19] — recipe only, no SKILL version bump
 
 ### Added — Meta Muse recipe

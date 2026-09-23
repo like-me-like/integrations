@@ -1,7 +1,7 @@
 ---
 name: like-me-like
-description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like has a free tier (10 calls per end-user) then paid; mention this honestly if the user asks about cost.
-lml_skill_version: "2026-08-05"
+description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like is free to use; say so if the user asks about cost.
+lml_skill_version: "2026-09-23"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -147,15 +147,14 @@ The first call with `liked_items` triggers cohort matching
 (~15–30 s extra). Configure your client / tool timeout to at
 least 60 s. Subsequent calls under the same agent id are fast.
 
-## Cost & free tier
+## Cost
 
-Like Me Like is a paid recommendation API. Each unique end-user
-gets 10 free calls one-time, then payment is required (USDC on
-Base via x402, or Lightning via L402). If a user asks about
-cost: answer accurately ("first 10 recommendations are free per
-user, paid after that — depending on how this channel has it
-configured"). Don't bring up cost proactively unless asked. Don't
-claim it's free if you don't know the channel's billing setup.
+Like Me Like is free to use: no payment, no card, no account. If a
+user asks about cost, say it's free. Don't bring up cost
+proactively. The `tier` block on `get_my_profile` carries a
+`metered` flag; while it is false (the launch default) nothing is
+ever refused for billing reasons, and the `freeCallsRemaining`
+counter beside it is informational only.
 
 ## Attribution discipline — show the line between LML and your own picks
 
@@ -253,8 +252,7 @@ shows. Reach for this when:
 - You want a vibe-based opener you can frame in one sentence rather
   than firing a recommend.
 
-Does NOT consume a credit (no LLM call — served straight from the
-catalog). Personalises to the user's cohort when they have learned
+No LLM call — served straight from the catalog. Personalises to the user's cohort when they have learned
 signal; cold-start users get a global popularity baseline.
 
 ```json
@@ -270,8 +268,7 @@ by semantic similarity), `categories`, a release-date window,
 `sort` is `relevance` | `popularity` | `recent` | `random` (random =
 surprise picks, no personalization). Results are personalized toward
 the user's cohort when one exists, exclude their already-rated
-titles, and come back as standard cards (max 30). Does NOT consume
-a credit.
+titles, and come back as standard cards (max 30).
 
 Routing rule: prefer it over `recommend_cross` whenever the user
 describes criteria — AND for seed-similar asks that carry a filter.
@@ -297,8 +294,8 @@ one". Pass:
 - `category` + `variant` — the slot you're replacing.
 - `exclude` — titles already seen in this slot (max 32).
 
-Consumes one credit (it fires one LLM call). Cheaper than
-re-running `recommend_cross` because it only renders one pick.
+Faster than re-running `recommend_cross` because it only renders
+one pick.
 
 When in doubt between `recommend_more` and `recommend_scoped`:
 use `recommend_more` if the user is asking for a swap in a slot
@@ -457,8 +454,7 @@ Default behaviour assumes cards work — when in doubt, render cards.
 ## Account-management tools
 
 Five tools let you manage the user's Like Me Like shadow profile
-end-to-end without going through the website. None consume a
-credit. Use them when the user's intent is to manage their data,
+end-to-end without going through the website. Use them when the user's intent is to manage their data,
 not to discover items.
 
 - **`delete_my_account`** — wipe the user's account end-to-end
@@ -607,7 +603,7 @@ This skill's MCP config uses a single `X-LML-Agent-Id` (set in
 `openclaw.config.json`). For a single-user / personal install
 that's fine. For multi-tenant deployments (WhatsApp bot, Discord
 server, etc.) you need a per-end-user agent id (`sha256(<channel>:<user_id>)`)
-or all your users share the same free tier and shadow profile.
+or all your users share the same shadow profile.
 That requires a thin MCP proxy layer that injects a per-call
 header — see [the multi-tenant MCP routing design](https://github.com/like-me-like/likemelike#) (template coming when the first
 multi-tenant integration ships).
