@@ -3,9 +3,10 @@
 The agent surface is stable from the `v1/` prefix. All endpoints
 take an `X-LML-Agent-Id` header carrying a stable third-party-supplied
 end-user identifier (8-256 ASCII chars). First call from a new
-identifier auto-creates a shadow profile and grants 10 free calls.
-After that, an x402 USDC top-up gates further calls (see Payments
-below).
+identifier auto-creates a shadow profile. Like Me Like is free to
+use: nothing is gated on payment and fair-use rate limits apply (the
+Payments section below documents an optional prepaid balance for a
+future paid tier).
 
 ```sh
 BASE="https://www.likemelike.com"
@@ -70,7 +71,7 @@ cap is enforced server-side on input — explicit failure with a
 hint beats silent truncation.
 
 **Default values** (when fields omitted): `categories` = first 2
-free-tier categories (book + movie typically), `variants` =
+default categories (book + movie typically), `variants` =
 `["best","recent"]`. That's 4 cells / ~8 items — a safe default.
 
 **For larger asks**, fire multiple parallel calls and merge
@@ -90,8 +91,9 @@ curl -s -N "$BASE/api/v1/recommend" \
 wait
 ```
 
-Each call counts as one against the free-tier counter (and
-against the credit balance once x402 enforcement is on).
+Each call ticks the usage counter reported as
+`tier.freeCallsRemaining`; while `tier.metered` is false (the launch
+default) nothing is ever refused on it.
 
 Basic single-call example:
 
@@ -168,7 +170,7 @@ curl -s "$BASE/api/v1/disambiguate" \
 
 "What's popular right now" picks for the caller's locale +
 categories, drawn from the catalog by taste affinity. No LLM
-call, no credit consumed. When the caller has been assigned to a
+call. When the caller has been assigned to a
 cohort, picks are biased toward that cohort's tastes; cold-start
 callers get a global popularity baseline. Same feed the LMLM
 website's homepage shows.
@@ -237,8 +239,7 @@ personalized — the caller's own already-rated titles are excluded.
 `"sort": "random"` samples the filtered set instead, for surprise
 picks. Results respect the
 viewer's language/age suitability and come back as standard
-Recommendation cards, localized to `locale`. Read-only — does not
-consume a free credit.
+Recommendation cards, localized to `locale`. Read-only.
 
 **Provider availability.** `available_on` (provider names —
 'Netflix', 'prime video', 'Spotify') keeps only items with a known
@@ -325,9 +326,9 @@ know about me" view, force-refresh the summary after a long
 session, or recall past gift queries.
 
 All three identify the agent via `X-LML-Agent-Id` (same header as
-every other v1 call). The two read-side endpoints (`me` and
-`me/gifts`) do NOT consume a free credit; `refresh-summary` costs
-one call credit because it triggers an LLM derivation.
+every other v1 call). `refresh-summary` triggers an LLM derivation
+and is rate limited; the two read-side endpoints (`me` and
+`me/gifts`) are plain reads.
 
 ```sh
 # What does LMLM know about me right now?
@@ -350,9 +351,10 @@ The same three are exposed as MCP tools: `get_my_profile`,
 `list_my_gifts`, `refresh_my_summary`. Use whichever surface fits
 your host (HTTP for REST clients, MCP for tool-calling agents).
 `get_my_profile` returns the same shape as `GET /api/v1/me`,
-including the `tier` block (`isFreeTier`, `freeCallsRemaining`), so
-an MCP-only host can answer "how many free calls do I have left?"
-without a second auth path.
+including the `tier` block (`metered`, `isFreeTier`,
+`freeCallsRemaining`). While `metered` is false — the launch default
+— Like Me Like is free to use and the counter is informational only;
+no call is ever refused on it.
 
 ## Saved items + recall lists
 
@@ -403,7 +405,7 @@ triaged and reviewed daily.
 
 NOT for taste data — likes/dislikes belong in the recommend /
 rating flows — and not for questions; only issues and suggestions
-about the service. Does NOT consume a free credit.
+about the service.
 
 ```sh
 curl -s "$BASE/api/v1/feedback" \
@@ -891,22 +893,19 @@ plus a high-level `ask` tool that wraps `/api/v1/chat`:
 Atomic tools = the agent's host LLM orchestrates. `ask` = our brain
 orchestrates.
 
-**What counts against the free tier.** Metering mirrors the REST
-endpoints: `ask`, `recommend_cross`, `recommend_scoped`,
-`recommend_more`, `disambiguate`, `get_item`, `search_items`,
-`get_profile` and `refresh_my_summary` each count as one call
-against the free-tier / balance counters, charged per tool call (a
-batch with two of them costs two). Everything else is free: the
-protocol messages (`initialize`, `tools/list`, `ping`,
-notifications), `get_popular`, `query_items`, `submit_feedback`, the
-saved-items and likes tools, and the account tools — so a host can
-connect, list tools and reconnect as often as it likes without
-spending the end-user's credits. When the free tier is exhausted and
-balance enforcement is on, a metered tool call returns a tool result
-with `isError: true` whose `structuredContent` carries
+**Cost.** Like Me Like is free to use. Nothing on this server is
+gated on payment while `tier.metered` (see `get_my_profile`) is
+false, which is the launch default: the handshake and every tool are
+served without a top-up, and fair-use rate limits apply. The usage
+counter behind `freeCallsRemaining` still ticks on the
+recommendation-producing tools (`ask`, `recommend_cross`,
+`recommend_scoped`, `recommend_more`, `disambiguate`, `get_item`,
+`search_items`, `get_profile`, `refresh_my_summary`) so a future paid
+tier has a baseline. If that tier ever goes live, `metered` flips to
+true and a metered call past the counter and the balance returns a
+tool result with `isError: true` whose `structuredContent` carries
 `error: "payment_required"` plus the x402 `payment_requirements`
-payload. Top up via `POST /api/v1/billing/topup` (see Payments) and
-retry.
+payload (see Payments).
 
 ### JSON-RPC handshake
 
@@ -991,7 +990,7 @@ transport reads the `url` + `headers` block:
 ```
 
 Reuse the same agent id across sessions — the shadow profile builds
-up over calls, and free-tier credits are tracked against this id.
+up over calls, and the usage counter is tracked against this id.
 
 ### Notifications
 
@@ -1001,14 +1000,19 @@ response body (HTTP 204). Used for client→server signals like
 
 ## Payments (x402 via Coinbase CDP)
 
-Agents start with **10 free calls** per X-LML-Agent-Id. After that,
-the agent must hold a positive USD-micro balance — topped up via the
-x402 protocol settling USDC on Base.
+**Nothing in this section is required today.** Like Me Like is free
+to use: the balance gate is off on every surface (`tier.metered` is
+false), so every call is served whether or not the agent holds a
+balance. The endpoints below stay live and documented for
+integrators who want to prepay for a future paid tier; the flow
+describes how the gate behaves once it is on.
 
-The flow:
+The flow, with the gate on:
 
-1. Free tier (first 10 metered calls): no payment, just call.
-2. After free tier exhausted: every metered call is gated by balance.
+1. The first 10 metered calls per X-LML-Agent-Id are free.
+2. After that, every metered call is gated by balance (USD-micro,
+   topped up via the x402 protocol settling USDC on Base, or via
+   Lightning).
 3. To top up: POST /api/v1/billing/topup. Without an X-Payment
    header you get **HTTP 402 Payment Required** with the
    PaymentRequirements payload (price, asset, network, payTo
@@ -1017,9 +1021,8 @@ The flow:
    payload, retry with `X-Payment: <payload>`. Server verifies +
    settles via the Coinbase CDP facilitator → balance credited.
 
-During the public preview, x402 enforcement may be off — calls
-past the free tier are still served while the ledger logs the
-would-be-charged amount. Production traffic is gated by balance.
+Today the gate is off everywhere, production included; the ledger
+logs the would-be-charged amount for planning only.
 
 Which calls count: the recommendation-producing endpoints and their
 MCP twins — `chat` / `ask`, `recommend*`, `disambiguate`, `item/{id}`,
@@ -1270,7 +1273,7 @@ the user takes that long.
 
 ### Per-call cost model
 
-Each paid-tier call deducts a **flat $0.05 estimate** from balance
+With the gate on, each metered call deducts a **flat $0.05 estimate** from balance
 in this version. Actual cost is logged for future reconciliation
 against the upstream LLM provider's reported cost. Refunds for
 over-charges live in the ledger as manual adjustments by the
