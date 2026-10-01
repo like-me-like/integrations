@@ -593,15 +593,14 @@ hard for the cohort pipeline to guess; an explicit *"I bounce off
 slow cinema"* sharpens the cohort match as much as a positive
 anchor does.
 
-**Critical: LMLM does not parse `message` text for preferences.**
-Only the structured `liked_items[]` and `disliked_items[]` arrays
-land in the user profile and feed cohort scoring. If the user says
-*"Deep Impact was so much fun"* in `message` and the host doesn't
-extract that into `liked_items`, the pipeline never sees it as a
-positive anchor — even if the chat brain mentions Deep Impact in
-the reply. Same for negatives: *"hate horror"* in the text alone is
-invisible. Extraction is the host's job; structured arrays are the
-contract.
+**Critical: the structured arrays are the contract.**
+`liked_items[]`, `disliked_items[]` and `taste_signals[]` land in the
+user profile and feed cohort scoring. The chat brain also records
+taste the user states as their OWN in `message` (*"Deep Impact was so
+much fun"*, *"I hate horror"*), but only what is said there: anything
+you know from earlier conversation and don't pass stays invisible, and
+taste of other people (a family member, a gift recipient) is never
+recorded. Extract proactively; don't rely on the message alone.
 
 **Some preferences aren't titles.** When the user expresses an
 abstract signal that doesn't resolve to a specific work — a vibe,
@@ -883,7 +882,7 @@ plus a high-level `ask` tool that wraps `/api/v1/chat`:
 | `get_item` | structured | look up canonical item details by id |
 | `search_items` | structured | title-prefix browse the items catalog |
 | `query_items` | structured | criteria queries — semantic description + category/year/origin-language/popularity filters ("Italian films from the 70s") |
-| `get_profile` | structured | fetch a public profile by slug |
+| `get_profile` | structured | fetch a public profile by slug; without a slug, the caller's own profile |
 | `save_item` | structured | bookmark a pick the user wants to remember to TRY (distinct from liked_items) |
 | `list_saved_items` | structured | the user's bookmarks, as cards (mode `recall`) |
 | `remove_saved_item` | structured | remove a bookmark |
