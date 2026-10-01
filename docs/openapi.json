@@ -3,7 +3,7 @@
   "info": {
     "title": "Like Me Like Agent API",
     "version": "1.0.0",
-    "description": "Cross-domain taste recommendations for autonomous agents.\n\nAuth via X-LML-Agent-Id header. First call from a new agent_user_id\nauto-creates a shadow profile. Free to use: nothing is gated on\npayment (fair-use rate limits apply). The /api/v1/billing/* endpoints\ndocument an optional prepaid balance for a future paid tier.",
+    "description": "Cross-domain taste recommendations for autonomous agents.\n\nAuth via X-LML-Agent-Id header. First call from a new agent_user_id\nauto-creates a shadow profile. Free to use: nothing is gated on\npayment (fair-use rate limits apply); there are no paid plans and\nnone are planned. The /api/v1/billing/* endpoints document dormant\nprepaid-balance machinery for completeness only.",
     "contact": {
       "name": "Like Me Like",
       "url": "https://www.likemelike.com"

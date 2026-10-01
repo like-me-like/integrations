@@ -4,9 +4,10 @@ The agent surface is stable from the `v1/` prefix. All endpoints
 take an `X-LML-Agent-Id` header carrying a stable third-party-supplied
 end-user identifier (8-256 ASCII chars). First call from a new
 identifier auto-creates a shadow profile. Like Me Like is free to
-use: nothing is gated on payment and fair-use rate limits apply (the
-Payments section below documents an optional prepaid balance for a
-future paid tier).
+use: nothing is gated on payment, fair-use rate limits apply, and
+there are no paid plans and none are planned (the Payments section
+below documents dormant prepaid-balance machinery for completeness
+only).
 
 ```sh
 BASE="https://www.likemelike.com"
@@ -92,8 +93,8 @@ wait
 ```
 
 Each call ticks the usage counter reported as
-`tier.freeCallsRemaining`; while `tier.metered` is false (the launch
-default) nothing is ever refused on it.
+`tier.freeCallsRemaining`; `tier.metered` is false and stays so, so
+nothing is ever refused on it.
 
 Basic single-call example:
 
@@ -352,9 +353,9 @@ The same three are exposed as MCP tools: `get_my_profile`,
 your host (HTTP for REST clients, MCP for tool-calling agents).
 `get_my_profile` returns the same shape as `GET /api/v1/me`,
 including the `tier` block (`metered`, `isFreeTier`,
-`freeCallsRemaining`). While `metered` is false — the launch default
-— Like Me Like is free to use and the counter is informational only;
-no call is ever refused on it.
+`freeCallsRemaining`). `metered` is false and stays so: Like Me Like
+is free to use and the counter is informational only; no call is
+ever refused on it.
 
 ## Saved items + recall lists
 
@@ -894,18 +895,14 @@ Atomic tools = the agent's host LLM orchestrates. `ask` = our brain
 orchestrates.
 
 **Cost.** Like Me Like is free to use. Nothing on this server is
-gated on payment while `tier.metered` (see `get_my_profile`) is
-false, which is the launch default: the handshake and every tool are
-served without a top-up, and fair-use rate limits apply. The usage
-counter behind `freeCallsRemaining` still ticks on the
-recommendation-producing tools (`ask`, `recommend_cross`,
+gated on payment: `tier.metered` (see `get_my_profile`) is false and
+stays so, the handshake and every tool are served without a top-up,
+and fair-use rate limits apply. There are no paid plans and none are
+planned. The usage counter behind `freeCallsRemaining` still ticks on
+the recommendation-producing tools (`ask`, `recommend_cross`,
 `recommend_scoped`, `recommend_more`, `disambiguate`, `get_item`,
-`search_items`, `get_profile`, `refresh_my_summary`) so a future paid
-tier has a baseline. If that tier ever goes live, `metered` flips to
-true and a metered call past the counter and the balance returns a
-tool result with `isError: true` whose `structuredContent` carries
-`error: "payment_required"` plus the x402 `payment_requirements`
-payload (see Payments).
+`search_items`, `get_profile`, `refresh_my_summary`) as a plain usage
+statistic — it never refuses a call.
 
 ### JSON-RPC handshake
 
@@ -1000,14 +997,15 @@ response body (HTTP 204). Used for client→server signals like
 
 ## Payments (x402 via Coinbase CDP)
 
-**Nothing in this section is required today.** Like Me Like is free
-to use: the balance gate is off on every surface (`tier.metered` is
-false), so every call is served whether or not the agent holds a
-balance. The endpoints below stay live and documented for
-integrators who want to prepay for a future paid tier; the flow
-describes how the gate behaves once it is on.
+**Nothing in this section is needed.** Like Me Like is free to use:
+the balance gate is off on every surface (`tier.metered` is false and
+stays so), every call is served whether or not the agent holds a
+balance, and there are no paid plans and none are planned. The
+endpoints below are dormant — still live and documented for
+completeness, nothing more; no integration needs to implement any of
+this.
 
-The flow, with the gate on:
+The flow, as the dormant machinery was designed:
 
 1. The first 10 metered calls per X-LML-Agent-Id are free.
 2. After that, every metered call is gated by balance (USD-micro,
@@ -1021,8 +1019,8 @@ The flow, with the gate on:
    payload, retry with `X-Payment: <payload>`. Server verifies +
    settles via the Coinbase CDP facilitator → balance credited.
 
-Today the gate is off everywhere, production included; the ledger
-logs the would-be-charged amount for planning only.
+The gate is off everywhere, production included; the ledger only
+keeps a usage statistic.
 
 Which calls count: the recommendation-producing endpoints and their
 MCP twins — `chat` / `ask`, `recommend*`, `disambiguate`, `item/{id}`,
