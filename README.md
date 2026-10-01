@@ -23,10 +23,9 @@ identifies.
 
 **Like Me Like is free to use.** No payment, no card, no account: an
 end-user is identified only by the stable id you send in
-`X-LML-Agent-Id`. Fair-use rate limits apply. Paid plans for heavy
-commercial use may come later; if they do, we announce them here
-first, and the `tier.metered` flag (below) flips from `false` to
-`true` so integrations can tell programmatically.
+`X-LML-Agent-Id`. Fair-use rate limits apply. There are no paid
+plans and none are planned; the `tier.metered` flag (below) is
+`false` and stays so.
 
 The id is still **per end-user**, not per integration:
 
@@ -41,9 +40,9 @@ The id is still **per end-user**, not per integration:
   `isFreeTier`, `freeCallsRemaining`. While `metered` is `false` the
   counter is informational only and never refuses a call.
 - The prepaid-balance endpoints (`/api/v1/billing/*`: x402 USDC on
-  Base, or Lightning) stay live and documented for integrators who
-  want to prepay for a future paid tier — nothing is gated on them
-  today. See [`docs/agents.md` § Payments](docs/agents.md#payments-x402-via-coinbase-cdp).
+  Base, or Lightning) are dormant: still documented for completeness
+  in [`docs/agents.md` § Payments](docs/agents.md#payments-x402-via-coinbase-cdp),
+  but nothing is gated on them and no call ever needs them.
 
 | You're building | Agent ID strategy |
 | --- | --- |
