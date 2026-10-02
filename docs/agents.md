@@ -264,7 +264,10 @@ unresolvable anchor falls back to description/popularity with a
 hint. Matching items carry `provider_links` (direct
 watch/listen deeplinks); the surviving link per provider prefers
 the caller's market, with a `regions` array listing the other
-markets when the query wasn't region-scoped. **To answer whether
+markets when the query wasn't region-scoped. With `available_on`,
+the search runs over that provider's whole offer in the market, so a
+theme ask can surface any offered work, not only the closest ones in
+the full catalog. **To answer whether
 something is available in a specific market, always make a fresh
 region-scoped call** — never reason from links remembered from an
 earlier, unscoped result. Availability data is partial (screen
@@ -494,6 +497,39 @@ The same field ships on the SSE `done` event (streaming mode), on
 the standard JSON response above, and on the MCP `ask` tool's
 `structuredContent`. Host UIs that render cards should honour the
 mode contract so recall queries land complete.
+
+### Seed titles the catalog does not know
+
+When a recommendation in this turn ran on a seed title the catalog
+does not know, the response adds two fields:
+
+- **`recommendation_seed_known: false`** — the seed was not found in
+  the catalog.
+- **`recommendation_seed_identified`** — the work a web look-up
+  identified for that title, as `{ title, year, kind, country,
+  makers, summary }`, or `null` when nothing could be identified.
+
+With an identified work, the picks come from that work. With `null`,
+the picks can only follow the bare title, so a host that publishes
+picks (a public reply, a card) should rather ask the user what they
+loved about it. A known seed carries neither field. Both fields also
+ship on the SSE `done` event and in the MCP `ask` tool's
+`structuredContent`; the atomic `recommend_cross` / `recommend_scoped`
+results carry the same information as `seed_known` and
+`seed_identified`.
+
+```json
+{
+  "reply": "That title is the local release name of a 1974 West German comedy ...",
+  "recommendations": [ { "type": "movie", "title": "...", ... } ],
+  "recommendation_seed_known": false,
+  "recommendation_seed_identified": {
+    "title": "<original title>", "year": "1974", "kind": "film",
+    "country": "West Germany", "makers": ["<director>"],
+    "summary": "<one-line identification of the work>"
+  }
+}
+```
 
 ### Multi-turn, stateful
 

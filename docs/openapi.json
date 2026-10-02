@@ -2076,6 +2076,15 @@
                         }
                       }
                     },
+                    "recommendation_seed_known": {
+                      "type": "boolean",
+                      "description": "Present (false) only when a recommendation in this turn ran on a seed title the catalog does not know. Absent for known seeds."
+                    },
+                    "recommendation_seed_identified": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Present together with recommendation_seed_known: the work a web look-up identified for the unknown seed ({ title, year, kind, country, makers, summary }), or null when nothing could be identified. With null the picks only follow the bare title, so a host that publishes picks should rather ask the user what they loved about it."
+                    },
                     "latency_ms": {
                       "type": "integer"
                     }
