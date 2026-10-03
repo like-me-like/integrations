@@ -13,6 +13,17 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-10-03
+
+### Changed
+
+- `integrations/chatgpt/`: the recipe now leads with **Route A — a
+  ChatGPT app** (remote MCP server + OAuth sign-in, per-user profile,
+  all tools, developer-mode quick start, what to expect). The Custom
+  GPT Action recipe is kept as Route B for people who publish their
+  own GPT. Top-level README host table and the "platform not listed"
+  note updated accordingly. Dev-facing README change, no SKILL bump.
+
 ## [2026-09-23]
 
 ### Changed — Like Me Like is free to use

@@ -1,15 +1,97 @@
-# ChatGPT — Custom GPT Action
+# ChatGPT
+
+There are two ways to use Like Me Like from ChatGPT:
+
+- **Route A — a ChatGPT app (remote MCP server + OAuth).** The
+  recommended route. ChatGPT connects to Like Me Like's MCP server,
+  each user signs in to their own anonymous taste profile, and all
+  24 tools are available. Nothing to paste, nothing to host.
+- **Route B — a Custom GPT Action (OpenAPI schema).** For people
+  who publish their own GPT. Works today, but every user of the GPT
+  shares one profile.
+
+## Route A — ChatGPT app (MCP + OAuth)
+
+ChatGPT talks to remote MCP servers as *apps* (earlier called
+connectors). It cannot send custom headers, so Like Me Like's usual
+`X-LML-Agent-Id` header is not used here; instead ChatGPT signs the
+user in with OAuth and sends the resulting token on every call. The
+server discovers everything it needs by itself:
+
+- **MCP endpoint:** `https://www.likemelike.com/api/v1/mcp`
+  (Streamable HTTP)
+- **Auth:** OAuth 2.1 with PKCE, discovered through the standard
+  well-known documents — no client id or secret to fill in
+- **Identity:** the OAuth sign-in binds the app to the user's own
+  Like Me Like profile — the same anonymous profile the website
+  keeps in that browser. No account, no e-mail.
+
+### Quick start (developer mode, until the app is listed)
+
+Like Me Like is not in ChatGPT's app directory yet, so you add it
+yourself:
+
+1. In ChatGPT open **Settings → Apps & Connectors** (older builds:
+   *Connectors*), then **Advanced**, and switch on **Developer
+   mode**.
+2. Choose **Create** and pick the option for a remote **MCP app**
+   (not *plugin*, which is a packaged bundle).
+3. Fill in a name (`Like Me Like`), the server URL
+   `https://www.likemelike.com/api/v1/mcp`, and **OAuth** as the
+   authentication. Leave client id / secret empty — ChatGPT
+   registers itself with the server.
+4. ChatGPT opens Like Me Like's consent page in your browser. Click
+   **Allow**. Do this in the browser you use for
+   [likemelike.com](https://www.likemelike.com) if you want the app
+   to share that profile.
+5. Start a new chat, enable the Like Me Like app for that chat, and
+   ask away: *"Ask Like Me Like what I'd enjoy reading if
+   Interstellar is my favourite film."*
+
+Some ChatGPT builds show the app under **Settings → Security and
+login → Developer mode** instead; the fields are the same.
+
+### What to expect
+
+- **No approval prompts for recommendations.** The recommendation
+  and lookup tools are annotated read-only, so ChatGPT calls them
+  without asking you to confirm each one. The tools that change your
+  profile (like, save, settings) are marked as writes; deleting the
+  profile is the only destructive one.
+- **Timing.** A first call that brings your likes takes roughly
+  10–25 seconds while the profile is prepared; later calls take a
+  few seconds. Set generous timeouts if you drive the app from
+  automation.
+- **Your taste lands on your profile.** ChatGPT usually passes what
+  you told it as structured likes and taste signals; statements
+  about your *own* taste in the question itself are recorded too.
+  Preferences of other people (a child, a gift recipient) are not.
+- **After a change on our side**, refresh the app on its details
+  page in ChatGPT's app settings so it picks up new tools or
+  descriptions.
+- **Private to your account.** A developer-mode app is visible only
+  to you. A listing in ChatGPT's app directory, and inline
+  recommendation cards (the MCP Apps standard), are planned next.
+
+How the tools behave — the first-call kickoff, discovery framing,
+`agent_calibration`, the `recommendations_mode` render hint — is the
+same as for every MCP host and is documented in
+[`docs/agents.md`](../../docs/agents.md).
+
+## Route B — Custom GPT Action
 
 ChatGPT Custom GPTs don't support MCP. They invoke external tools
 via "Actions" — an OpenAPI 3.x schema pasted into the GPT editor,
-plus an auth picker.
+plus an auth picker. Use this route when you publish your own GPT;
+for personal use, Route A above is simpler and gives you your own
+profile.
 
-## Files
+### Files
 
 - [`actions-openapi.yaml`](actions-openapi.yaml) — paste this into
   the GPT editor's **Configure → Actions → Schema** field.
 
-## Quick start
+### Quick start
 
 1. Open [chat.openai.com](https://chat.openai.com), click your
    profile → **My GPTs** → **Create a GPT** (or edit an existing
@@ -30,7 +112,7 @@ plus an auth picker.
 6. In the GPT's **Instructions** field, paste the suggested block
    below ([§ Suggested GPT instructions](#suggested-gpt-instructions)).
 
-## Suggested GPT instructions
+### Suggested GPT instructions
 
 Copy this into the GPT's **Instructions** field — it teaches the
 GPT to call the Action AND tells it how to use the
@@ -84,7 +166,7 @@ GPT to call the Action AND tells it how to use the
 > If the user asks about cost: Like Me Like is free to use. Don't
 > bring up cost proactively.
 
-## Constraints (per OpenAI's Actions docs)
+### Constraints (per OpenAI's Actions docs)
 
 - **Max 30 operations per GPT** — the shipped manifest stays well
   under that.
@@ -96,7 +178,7 @@ GPT to call the Action AND tells it how to use the
 - The auth field gets stripped if you switch auth type in the UI;
   set it last after pasting the schema.
 
-## Limitations
+### Limitations
 
 - Custom GPTs can't stream — the streaming `/api/v1/recommend`
   endpoint returns its full text body to the GPT, which is
@@ -106,7 +188,7 @@ GPT to call the Action AND tells it how to use the
   toggle then suppresses subsequent prompts.
 - Rate limits apply per ChatGPT user, not per `X-LML-Agent-Id`.
 
-## Cost & identity — read this before publishing your GPT
+### Cost & identity — read this before publishing your GPT
 
 Like Me Like is free to use, so there is no bill to think about.
 What matters is identity: for Custom GPTs the agent ID is set
@@ -117,10 +199,11 @@ one, where one user's likes would colour another's picks. ChatGPT
 has no way to forward an end-user identifier to an Action header
 per request.
 
-If you need per-end-user profiles, build on a platform that
-supports per-user tool-call identity instead — e.g. an MCP server
-connected to Claude Desktop, Meta Muse or OpenClaw, or a custom
-function-calling integration where your backend chooses the agent
-ID per request.
+If you need per-end-user profiles in ChatGPT, use the
+[ChatGPT app route](#route-a--chatgpt-app-mcp--oauth) above: every
+ChatGPT user signs in to their own Like Me Like profile. On other
+platforms, an MCP server connected to Claude Desktop, Meta Muse or
+OpenClaw, or a custom function-calling integration where your
+backend chooses the agent ID per request, gives the same result.
 
 See [Pricing in the top-level README](../../README.md#pricing--free-to-use).

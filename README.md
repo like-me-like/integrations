@@ -61,7 +61,7 @@ Pick the integration folder that matches the platform you're building on:
 | OpenClaw / Clawhub | [`integrations/openclaw/`](integrations/openclaw/) | Skill + plugin formats |
 | Hermes | [`integrations/hermes/`](integrations/hermes/) | Plugin format |
 | Meta Muse / Muse Code | [`integrations/muse/`](integrations/muse/) | Custom connector — remote MCP, header auth |
-| ChatGPT (Custom GPTs) | [`integrations/chatgpt/`](integrations/chatgpt/) | OpenAPI Action |
+| ChatGPT | [`integrations/chatgpt/`](integrations/chatgpt/) | App — remote MCP, OAuth (per-user profile); or a Custom GPT Action |
 | Gemini | [`integrations/gemini/`](integrations/gemini/) | Function-calling tools |
 | Grok (xAI) | [`integrations/grok/`](integrations/grok/) | Function-calling tools |
 | Direct REST | [`docs/agents.md`](docs/agents.md) | Curl/HTTP — language-agnostic |
@@ -69,7 +69,10 @@ Pick the integration folder that matches the platform you're building on:
 If your platform isn't listed and supports MCP (Model Context Protocol)
 over Streamable-HTTP, point it at `https://www.likemelike.com/api/v1/mcp`
 with a header `X-LML-Agent-Id: <your-stable-id>` — that works
-out of the box.
+out of the box. Hosts that cannot send custom headers (ChatGPT, for
+one) can sign users in with OAuth instead: the server publishes the
+standard OAuth discovery documents and ChatGPT registers itself; see
+[`integrations/chatgpt/`](integrations/chatgpt/).
 
 ## For AI agents reading this
 
