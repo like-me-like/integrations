@@ -242,6 +242,18 @@ picks. Results respect the
 viewer's language/age suitability and come back as standard
 Recommendation cards, localized to `locale`. Read-only.
 
+**Order of a themed result.** For a free-text `description` the
+candidates are first checked against the theme. Among the titles
+that fit, the strongest picks come first: how squarely a title
+answers the ask and how well regarded the work is.
+`applied_filters.strengthOrdered: true` marks a result where that
+order was applied. Without it (an anchored ask, a `sort` other than
+relevance, a personalized order, or when the order could not be
+applied in time) the titles come in similarity order with well-known
+ones lifted.
+Either way, present the list in the order returned: the first
+titles are the ones to lead with.
+
 **Provider availability.** `available_on` (provider names —
 'Netflix', 'prime video', 'Spotify') keeps only items with a known
 offer there; `availability_region` scopes it to one market. When
@@ -928,6 +940,23 @@ plus a high-level `ask` tool that wraps `/api/v1/chat`:
 
 Atomic tools = the agent's host LLM orchestrates. `ask` = our brain
 orchestrates.
+
+**Picks from the user's own taste (`from_your_taste`).** When the
+caller has likes in the category that is asked for, a cross-domain
+answer (`recommend_cross`, `recommend_scoped`, and the REST
+recommend endpoints) has two parts. The first half holds the closest
+matches to the asked title. The rest may be there because of what
+the user already likes, not because it is close to the asked title.
+Such a pick carries `from_your_taste: true`, its `reason` describes
+the item itself, and the tool result carries a one-line
+`from_your_taste_note` beside the picks. The flag is also on the
+picks inside the `recommendations[]` of `ask` and `/api/v1/chat`;
+the note is on the atomic tool results only (in `ask` the reply text
+already frames those picks). Render them apart from the close
+matches ("and, going by your taste, …"). Never present one as
+"like <asked title>": it is not a neighbour of that title, and a
+bridge to it reads as a miss. A caller without likes in that
+category never gets such picks.
 
 **Cost.** Like Me Like is free to use. Nothing on this server is
 gated on payment: `tier.metered` (see `get_my_profile`) is false and
