@@ -247,6 +247,7 @@
           },
           "disliked": {
             "type": "array",
+            "description": "Always empty for a profile read by slug: what a person rejected is not public. A caller reads its own rejected items through /api/v1/me.",
             "items": {
               "$ref": "#/components/schemas/ProfileItem"
             }

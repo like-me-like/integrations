@@ -13,6 +13,19 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-10-13
+
+### Changed
+
+- `GET /api/v1/profiles/{slug}` and the `get_profile` tool called with a
+  slug no longer return another person's rejected items: `disliked` is
+  always an empty list there. What someone rejected is not public. A
+  caller still reads its own through `/api/v1/me`, `get_my_profile` and
+  `list_my_likes`. The key stays in the response, so existing clients
+  keep working. `docs/openapi.json` says so on the field.
+- The `summary` of a profile read by slug is written for other readers:
+  it describes the person's taste without naming the items they liked.
+
 ## 2026-10-03
 
 ### Changed
