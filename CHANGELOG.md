@@ -25,6 +25,13 @@ changes do not bump the SKILL version.
   keep working. `docs/openapi.json` says so on the field.
 - The `summary` of a profile read by slug is written for other readers:
   it describes the person's taste without naming the items they liked.
+- Both `SKILL.md` files (`lml_skill_version: "2026-10-13"`): the
+  paragraph on the persisted context names the lines the assistant gets
+  now, which are the visitor's languages, how they came in and the part
+  of the day. It no longer names a device, dark mode or the local time:
+  the assistant on the website is not told the kind of device, the time
+  zone, the weekday or the clock time any more, and it keeps what it is
+  told out of its replies.
 
 ## 2026-10-03
 

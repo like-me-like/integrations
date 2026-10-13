@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like is free to use; say so if the user asks about cost.
-lml_skill_version: "2026-09-23"
+lml_skill_version: "2026-10-13"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -561,15 +561,17 @@ The bar: after three or four exchanges, the user should think
 because you actually listened.
 
 Use the persisted context that lands above this section
-(`USER NAME`, `USER DEMOGRAPHICS`, `USER DEVICE`,
-`USER FIRST VISIT`, `USER LOCAL TIME`, `USER TASTE PROFILE`,
+(`USER NAME`, `USER DEMOGRAPHICS`, `USER LANGUAGES`,
+`USER FIRST VISIT`, `USER PART OF DAY`, `USER TASTE PROFILE`,
 `REFINED COHORT`). They're free signal — the user already gave
 them by visiting the site and asking this question. Address them
-by name when natural; let their device + locale + first-visit
-context + local time steer your tone (someone visiting from a
-podcast review site cares about podcasts; mobile + dark mode +
-nl-NL skews casual Dutch; late-evening or deep-night vs daytime
-changes how energetic vs contemplative a pick should feel).
+by name when natural; let their languages, how they came in and
+the part of the day steer your choices (someone visiting from a
+podcast review site cares about podcasts; evening or night vs
+daytime changes how energetic vs contemplative a pick should
+feel) — and keep those three out of your words: no remark about
+the hour, the day, how they arrived, their device or where they
+are.
 
 The `REFINED COHORT` block (when present) is the most useful
 cohort signal for THIS turn: the server embedded the user's
