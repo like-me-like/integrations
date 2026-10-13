@@ -17,6 +17,24 @@ changes do not bump the SKILL version.
 
 ### Changed
 
+- Lists leave out works whose main subject is sexual violence or the
+  sexual abuse of a minor, on every assistant and bot call (MCP tools,
+  `/api/v1/chat`, `/api/v1/recommend*`, `/api/v1/popular`,
+  `/api/v1/item/query`); a work asked for by title is still found, and
+  a shortened list carries a `content_note`. See "Works left out of
+  lists" in `docs/agents.md`.
+- Every MCP tool now carries a `title` next to its annotations (shown by
+  hosts in tool lists and approval prompts). A connected ChatGPT app
+  needs its refresh to pick the new manifest up.
+- OAuth client registration: a `client_name` that claims a known host
+  (ChatGPT, Claude, Gemini, Muse, Perplexity, Mistral, Copilot, Cursor,
+  VS Code) is accepted only with redirect URIs on that host's own
+  domains; at most 60 registrations per hour from one address. The
+  consent page now states the address the user is sent back to, and
+  marks a self-registered name as unverified.
+- `X-LML-Agent-Id` values may not start with a reserved prefix
+  (`cookie:`, `oauth:`, `x:`, `api:`, `x-service`); such a header gets
+  a 400 `invalid_agent_id`.
 - `GET /api/v1/profiles/{slug}` and the `get_profile` tool called with a
   slug no longer return another person's rejected items: `disliked` is
   always an empty list there. What someone rejected is not public. A

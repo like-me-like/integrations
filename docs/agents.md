@@ -742,6 +742,25 @@ the list as the service's output; unlabelled additions corrupt
 both the user's trust and the feedback signal (a thumbs-down on
 the host's own pick lands on LML's account).
 
+### Works left out of lists — `content_note`
+
+Recommendation lists, popular lists and item queries leave out works
+whose main subject is sexual violence or the sexual abuse of a minor.
+This holds for every call an assistant or a bot makes: the MCP tools,
+`/api/v1/chat`, `/api/v1/recommend` (and `/scoped`, `/more`),
+`/api/v1/popular` and `/api/v1/item/query`. The service is meant to
+suit a general audience, younger readers included.
+
+- A work asked for **by its title** is still found: `search_items`,
+  `get_item`, `disambiguate` and their REST routes are not affected,
+  and such a work can still be the `item` an ask starts from.
+- When a list had works left out, the response carries a
+  `content_note` string next to the list (JSON responses and tool
+  results; the streamed `/api/v1/recommend` ends in the shortened
+  result without the note). Do not present such a list as everything
+  there is on the subject. If the user is after a specific work, look
+  it up by title.
+
 ### Personalisation: liked_items, disliked_items, taste_signals, first_touch, user_demographics, gift_mode, display_name
 
 The same six optional fields are accepted on **all** these
