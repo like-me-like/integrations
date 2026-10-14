@@ -18,10 +18,11 @@ changes do not bump the SKILL version.
 ### Changed
 
 - Works left out of lists (`content_note`): lists now leave out works
-  that are pornography or erotica, and works about the sexual abuse of a
-  minor. Works whose subject is sexual violence are listed again: a work
-  is not left out for its subject alone. A work asked for by its title
-  can still be looked up, as before.
+  that are pornography or erotica, and works that present a sexual
+  relationship between an adult and a child as romance. A work is not
+  left out for its subject alone: films, books and documentaries about
+  sexual violence or abuse are listed. A work asked for by its title can
+  still be looked up, as before.
 
 ## 2026-10-13
 
