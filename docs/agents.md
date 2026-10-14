@@ -745,7 +745,8 @@ the host's own pick lands on LML's account).
 ### Works left out of lists — `content_note`
 
 Recommendation lists, popular lists and item queries leave out works
-whose main subject is sexual violence or the sexual abuse of a minor.
+that are pornography or erotica, and works about the sexual abuse of a
+minor.
 This holds for every call an assistant or a bot makes: the MCP tools,
 `/api/v1/chat`, `/api/v1/recommend` (and `/scoped`, `/more`),
 `/api/v1/popular` and `/api/v1/item/query`. The service is meant to

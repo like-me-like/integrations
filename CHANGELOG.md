@@ -13,6 +13,16 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-10-14
+
+### Changed
+
+- Works left out of lists (`content_note`): lists now leave out works
+  that are pornography or erotica, and works about the sexual abuse of a
+  minor. Works whose subject is sexual violence are listed again: a work
+  is not left out for its subject alone. A work asked for by its title
+  can still be looked up, as before.
+
 ## 2026-10-13
 
 ### Changed
