@@ -13,6 +13,30 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-10-16
+
+### Changed
+
+- The direct tools are the default path; `ask` is the conversational
+  fallback. The MCP server now sends `instructions` on `initialize`
+  saying so, `ask` opens as "Conversational fallback — NOT the
+  default", and `recommend_cross`, `recommend_scoped` and
+  `query_items` open as the default tool for their kind of ask.
+- Teach the profile: the field descriptions ask for every work the
+  user named (`liked_items` / `disliked_items`), the user's own words
+  about why in `taste_signals` (`text` + `reason`), and a follow-up
+  after the picks recorded with `set_rating`. The SKILL.md files carry
+  the same rules (`lml_skill_version: 2026-10-16`): a brain-safe
+  "When to use", a new section "Hosts: ask, request_text and the
+  follow-up", and three rules under "Earn trust by drawing out
+  preferences".
+- New optional `request_text` (≤ 500 characters) on `recommend_cross`,
+  `recommend_scoped`, `query_items` and `get_popular`: the user's
+  request verbatim, kept with the profile's recent requests, where a
+  later `ask` reads it. MCP tools only; the REST routes ignore it.
+- `docs/agents.md`: a "Teach the profile" section, the `ask` row and
+  the paragraph under the MCP tools table, the `request_text` field.
+
 ## 2026-10-14
 
 ### Changed

@@ -764,10 +764,25 @@ suit a general audience, younger readers included.
   there is on the subject. If the user is after a specific work, look
   it up by title.
 
-### Personalisation: liked_items, disliked_items, taste_signals, first_touch, user_demographics, gift_mode, display_name
+### Teach the profile
 
-The same six optional fields are accepted on **all** these
-surfaces — pass any subset:
+The profile is what makes the picks good, and it carries over to
+the next question. On every call pass every work the user named:
+the ones they love in `liked_items`, the ones they reject in
+`disliked_items`. Put how they describe their taste in their own
+words — the why, the mood, the pet peeves — in `taste_signals`
+(`text` + the user's words as `reason`). If you can, pass the
+user's request verbatim in `request_text` (MCP tools). After showing picks, ask
+which ones appeal and which do not, and record each answer with
+`set_rating` (up / down); the next call already uses it. Only the
+user's own taste: never a gift recipient's or a family member's
+(use `gift_mode` for those).
+
+### Personalisation: liked_items, disliked_items, taste_signals, first_touch, user_demographics, gift_mode, display_name, request_text
+
+These optional fields are accepted on **all** these surfaces —
+pass any subset (`request_text` is the exception: the four MCP tools
+only):
 
 | Surface | How |
 | --- | --- |
@@ -813,6 +828,11 @@ surfaces — pass any subset:
   parenthetical-stripped. Combine with `liked_items + gift_mode:
   true` in one call to do the "those should have been a gift"
   recovery in a single round-trip.
+- `request_text` — the end-user's request in their own words,
+  verbatim (max 500 characters). Kept with the profile's recent
+  requests, where a later `ask` reads them; never answered from
+  directly. MCP tools only — `recommend_cross`, `recommend_scoped`,
+  `query_items` and `get_popular`; the REST routes ignore it.
 - `first_touch` — cold-start cohort hint when no liked_items yet.
   Mirrors what the website captures from `device_profile` +
   `first_visit_context` so the same fields generalise across
@@ -958,10 +978,13 @@ plus a high-level `ask` tool that wraps `/api/v1/chat`:
 | `remove_saved_item` | structured | remove a bookmark |
 | `list_my_likes` | structured | the user's own taste anchors, as cards (mode `recall`) |
 | `submit_feedback` | structured | file a bug / wrong item data / poor-quality / feature-request report (see Feedback below) |
-| `ask` | natural-language | one-shot conversational entry — same brain as `/chat` |
+| `ask` | natural-language | only when the request needs Like Me Like's own conversational reply (a mixed ask you cannot split, a follow-up needing clarification, a channel without a capable model); the direct tools above are the default |
 
-Atomic tools = the agent's host LLM orchestrates. `ask` = our brain
-orchestrates.
+The direct tools answer in seconds and return cards you present
+yourself. `ask` runs a second model on the Like Me Like side to
+choose tools and write a reply: slower, and the heaviest call this
+server serves. Default to the direct tools; reach for `ask` only when
+you need that reply.
 
 **Picks from the user's own taste (`from_your_taste`).** When the
 caller has likes in the category that is asked for, a cross-domain

@@ -1,7 +1,7 @@
 ---
 name: like-me-like
 description: Cross-domain taste recommendations via the Like Me Like MCP server. Use this skill when the end-user asks for a book, film, song, place, food, animal, or other item based on something else they love. Pass any liked items, demographics, and display name the user has shared in conversation. Like Me Like is free to use; say so if the user asks about cost.
-lml_skill_version: "2026-10-13"
+lml_skill_version: "2026-10-16"
 lml_skill_canonical_url: "https://raw.githubusercontent.com/like-me-like/integrations/main/integrations/openclaw/SKILL.md"
 metadata:
   openclaw:
@@ -63,9 +63,24 @@ Recognise these patterns:
   watch, read, and eat tonight?" → `recommend_cross` with
   `categories=["movie","book","food"]`.
 
-For natural-language one-shots, the `ask` tool is fine — it wraps
-the chat brain and orchestrates the atomic tools internally. Prefer
-atomic tools when you want explicit control or to chain results.
+The direct tools are the path: `recommend_scoped` /
+`recommend_cross` for "I love X, what should I …", `query_items`
+for criteria or availability, `search_items` / `disambiguate` for a
+title, `get_popular` for "what's good right now". They answer in
+seconds and return cards you present yourself.
+
+## Hosts: ask, request_text and the follow-up
+
+On the MCP surface, use `ask` only when you need Like Me Like's own
+conversational reply — a mixed request you cannot split into tool
+calls, or a follow-up that needs its clarification; `ask` runs a
+second model on the Like Me Like side and is the slowest, heaviest
+call. When you can, pass the user's request verbatim in
+`request_text` on `recommend_cross`, `recommend_scoped`,
+`query_items` and `get_popular`: it is kept with the profile's
+recent requests, where a later `ask` reads it. After showing picks,
+ask which ones appeal and which do not, and record each answer with
+`set_rating` (up / down) — the next call already uses it.
 
 ## Personalisation — pass what you have
 
@@ -528,6 +543,13 @@ comes back. It's to make the user feel understood. The
 EVERY future call for this user — they accumulate into a cohort
 signal, a learned summary, a cluster of axes. So every concrete
 preference you can elicit pays compound interest.
+
+Three rules on every call: pass EVERY work the user named — loved
+in `liked_items`, rejected in `disliked_items` — not only the
+seed; put the user's own words about why (the mood, the values, the
+pet peeves) in `taste_signals` (`text` + their phrasing as
+`reason`); and after showing picks, ask which ones appeal and which
+do not — that answer is the next anchor you pass.
 
 When context is thin (no `liked_items` this turn, no learned
 profile from prior turns), don't fall back to a generic call.
