@@ -830,7 +830,10 @@ only):
   recovery in a single round-trip.
 - `request_text` — the end-user's request in their own words,
   verbatim (max 500 characters). Kept with the profile's recent
-  requests, where a later `ask` reads them; never answered from
+  requests, where a later `ask` reads them, and what it states
+  about the user's own taste ("I loved X", "I read a lot about AI")
+  is added to the profile as a like or a taste signal; a request
+  about someone else's taste adds nothing. Never answered from
   directly. MCP tools only — `recommend_cross`, `recommend_scoped`,
   `query_items` and `get_popular`; the REST routes ignore it.
 - `first_touch` — cold-start cohort hint when no liked_items yet.

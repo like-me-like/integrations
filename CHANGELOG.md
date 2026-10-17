@@ -13,6 +13,17 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-10-17
+
+### Changed
+
+- `request_text` on `recommend_cross`, `recommend_scoped`, `query_items`
+  and `get_popular`: what the request states about the end-user's own
+  taste ("I loved X", "I read a lot about AI") is now added to the
+  profile as a like or a taste signal, after the response. A request
+  about someone else's taste, or a gift ask, adds nothing. The field is
+  still never answered from directly.
+
 ## 2026-10-16
 
 ### Changed
