@@ -219,6 +219,11 @@
             "type": "number",
             "nullable": true
           },
+          "year": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Release year, when known. Two works of one title (a film and its remake) are two candidates, told apart by year; pass the chosen candidate's id as item_id / anchorItemId."
+          },
           "confidence": {
             "type": "number",
             "description": "0-1 score"

@@ -13,6 +13,16 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-11-09
+
+### Added
+
+- `year` on a candidate of `/api/v1/disambiguate`
+  (`DisambiguateCandidate` in `docs/openapi.json`): the release year,
+  when known. Two works of one title (a film and its remake) come back
+  as two candidates, told apart by year; pass the chosen candidate's
+  `id` as `item_id` / `anchorItemId`.
+
 ## 2026-10-17
 
 ### Changed
