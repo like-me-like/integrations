@@ -13,6 +13,16 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-11-16
+
+### Changed
+
+- `recommendation_seed_identified` on the response of `/api/v1/chat`
+  (`docs/openapi.json`): the identified work now carries `subtitle`
+  next to `title`. `title` is the main title; `subtitle` is present
+  when the work has one. A title given together with its subtitle is
+  one work.
+
 ## 2026-11-09
 
 ### Added
