@@ -745,10 +745,11 @@ the host's own pick lands on LML's account).
 ### Works left out of lists — `content_note`
 
 Recommendation lists, popular lists and item queries leave out works
-that are pornography or erotica, and works that present a sexual
-relationship between an adult and a child as romance. A work is not
+that are pornography or erotica, works that present a sexual
+relationship between an adult and a child as romance, and works that
+are themselves hate propaganda against a group of people. A work is not
 left out for its subject: films, books and documentaries about sexual
-violence or abuse are listed.
+violence, abuse or hatred are listed.
 This holds for every call an assistant or a bot makes: the MCP tools,
 `/api/v1/chat`, `/api/v1/recommend` (and `/scoped`, `/more`),
 `/api/v1/popular` and `/api/v1/item/query`. The service is meant to

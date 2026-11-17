@@ -13,6 +13,17 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-11-17
+
+### Changed
+
+- Works left out of lists (`docs/agents.md`, "Works left out of lists"):
+  recommendation lists, popular lists and item queries now also leave
+  out works that are themselves hate propaganda against a group of
+  people. A work is not left out for its subject: films, books and
+  documentaries about hatred are listed, and a work asked for by its
+  title can still be looked up.
+
 ## 2026-11-16
 
 ### Changed
