@@ -2091,6 +2091,10 @@
                       "nullable": true,
                       "description": "Present together with recommendation_seed_known: the work a web look-up identified for the unknown seed ({ title, subtitle, year, kind, country, makers, summary }; title is the main title, subtitle is present when the work has one), or null when nothing could be identified. With null the picks only follow the bare title, so a host that publishes picks should rather ask the user what they loved about it."
                     },
+                    "recommendation_seed_known_as": {
+                      "type": "string",
+                      "description": "Present only when every recommendation in this turn ran on a seed title the catalog holds only as another kind of thing than was asked about (a brand, a place or a person for a film or book request), so the picks were generated from the title as typed. The value is the catalog's one entry under that title in one line: \"Title (year kind): the opening of its text…\". If that entry is what the user meant the picks stand; otherwise they are a guess, and a host that publishes picks should rather ask which work was meant. Separate from recommendation_seed_known, which is not set in this case."
+                    },
                     "latency_ms": {
                       "type": "integer"
                     }

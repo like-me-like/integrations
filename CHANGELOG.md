@@ -13,6 +13,23 @@ Date stamps are ISO YYYY-MM-DD; meaningful skill content changes
 bump that date. Pure copy-edits, typo fixes, and dev-facing README
 changes do not bump the SKILL version.
 
+## 2026-11-18
+
+### Added
+
+- `recommendation_seed_known_as` on the chat response
+  (`docs/openapi.json`; `docs/agents.md`, "Seed titles the catalog
+  holds only as something else"): present when every recommendation
+  in the turn ran on a seed title the catalog holds only as another
+  kind of thing than was asked about (a brand, a place or a person
+  for a film or book request). The value is the catalog's one entry
+  under that title in one line. If that entry is not what the user
+  meant, the picks are a guess, and a host that publishes picks
+  should rather ask which work was meant. The field also ships on
+  the SSE `done` event and in the MCP `ask` tool's
+  `structuredContent`; the `recommend_cross` / `recommend_scoped`
+  results carry the same line as `seed_known_as`.
+
 ## 2026-11-17
 
 ### Changed

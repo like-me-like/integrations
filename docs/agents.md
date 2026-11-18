@@ -543,6 +543,36 @@ results carry the same information as `seed_known` and
 }
 ```
 
+### Seed titles the catalog holds only as something else
+
+A title can be in the catalog as another kind of thing than the user
+asked about: a short word that is a brand, a place or a person when
+the request was for films or books. The picks are then generated from
+the title as typed, not from that catalog entry, and the response
+says so:
+
+- **`recommendation_seed_known_as`** — the catalog's one entry under
+  that title in one line, `"Title (year kind): the opening of its
+  text…"`. Present only when every recommendation in this turn was
+  made that way; absent otherwise.
+
+If the entry is what the user meant, the picks stand. If the user
+meant something else by the title, the picks are a guess: a host that
+publishes picks (a public reply, a card) should rather ask which work
+was meant. `recommendation_seed_known` is not set in this case; the
+two are separate. The field also ships on the SSE `done` event and in
+the MCP `ask` tool's `structuredContent`; the atomic `recommend_cross`
+/ `recommend_scoped` results carry the same line as `seed_known_as`,
+next to `seed_known_as_note`, which says the same in a sentence.
+
+```json
+{
+  "reply": "I don't recognise that title as a film, series or book. Which one do you mean?",
+  "recommendations": [ { "type": "movie", "title": "...", ... } ],
+  "recommendation_seed_known_as": "<Title> (1974 brand): <the opening of the catalog's text on it>…"
+}
+```
+
 ### Multi-turn, stateful
 
 First turn: omit `conversation_id`. The response returns one in the
